@@ -1,8 +1,15 @@
+import h5py
 from pywt import wavedec
-from .helper_code import *
+from challenge import *
 from .pan_tompkins_detector import *
-
+from torch.utils import data as torch_data
+from .config import *
 import numpy as np
+import logging
+import torch
+
+
+logger = logging.getLogger(__name__)
 
 
 class UtilityFunctions:
@@ -11,22 +18,33 @@ class UtilityFunctions:
                                 '164947007', '251146004', '270492004', '284470004', '365413008', '426177001', '426627000',
                                 '426783006', '427084000', '427393009', '445118002', '698252002', '713426002']
             #, '427172004','63593006',      '713427006'   , '733534002']
-
+    classes_counts = dict(zip(['6374002', '10370003', '17338001', '39732003', '47665007', '59118001', '59931005',
+                                '111975006', '164889003', '164890007', '164909002', '164917005', '164934002',
+                                '164947007', '251146004', '270492004', '284470004', '365413008', '426177001', '426627000',
+                                '426783006', '427084000', '427393009', '445118002', '698252002', '713426002'], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
     twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
     six_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF')
     four_leads = ('I', 'II', 'III', 'V2')
     three_leads = ('I', 'II', 'V2')
     two_leads = ('I', 'II')
-    leads_set = [twelve_leads, six_leads, four_leads, three_leads, two_leads]
+    leads_set = [twelve_leads]#, six_leads, four_leads, three_leads, two_leads]
 
+    window_size = 350
+    classes = set()
+
+    #TODO create def initiate_classes_count method which will zero the classes_counts, also we need a global count
 
     def calculate_pos_weights(self, class_counts):
+        logger.info("calculating positional weights")
         all_counts = sum(class_counts)
         pos_weights = [(all_counts-pos_count) / (pos_count + 1e-5) for pos_count in  class_counts]
+
+        logger.info(f"Result positional weights: {pos_weights}")
         return pos_weights #torch.as_tensor(pos_weights, dtype=torch.float, device=device)
 
 
     def extract_classes(self, header_files):
+        logger.info("Extracting classes from header files")
         classes_counts = dict()
         classes = set()
         for header_file in header_files:
@@ -38,71 +56,95 @@ class UtilityFunctions:
                     classes_counts[c] += 1
                 else:
                     classes_counts[c] = 1
-        classes = sorted(classes) 
+        self.classes = sorted(classes) 
         class_index = {c:i for i,c in enumerate(classes)} 
+
+        logger.debug(f"Classes found in dataset: {classes}")
+        logger.debug(f"Asigned indexes per class {class_index}")
         return (class_index, classes_counts)
 
+    def add_classes_counts(self, new_counts):
+        for k, v in new_counts.items():
+            self.classes_counts[k] += v
 
-    def prepare_h5_dataset(self, model_name, leads, fold, single_fold_data_training, single_fold_data_test):
+    def prepare_h5_dataset(self, leads, fold, single_fold_data_training, single_fold_data_test, header_files, recording_files):
+        logger.info(f"Preparing H5 dataset for {leads} leads, fold: {fold}")
         training_data_length = len(single_fold_data_training)
         lengths = [int(training_data_length * 0.8), training_data_length - int(training_data_length * 0.8)]
         data_training, data_validation = torch_data.random_split(single_fold_data_training, lengths)
         num_classes = len(self.all_classes)
         weights = None
-        training_filename = f'cinc_database_training_{fold}.h5'
-        validation_filename = f'cinc_database_validation_{fold}.h5'
-        training_full_filename = f'cinc_database_training_full_{fold}.h5'
-        test_filename = f'cinc_database_test_{fold}.h5'
+        training_filename = f'h5_datasets/cinc_database_training_{leads}_{fold}.h5'
+        validation_filename = f'h5_datasets/cinc_database_validation_{leads}_{fold}.h5'
+        training_full_filename = f'h5_datasets/cinc_database_training_full_{leads}_{fold}.h5'
+        test_filename = f'h5_datasets/cinc_database_test_{leads}_{fold}.h5'
+        training_weights_filename = f"h5_datasets/weights_fold{fold}_training.csv"
+        training_with_validation_weights_filename = f"h5_datasets/weights_full_fold{fold}_training.csv"
+
+
+        #TODO why do I create this dataset?
         if not os.path.isfile(training_full_filename):  # _{len(leads)}_training.h5'):
-            create_hdf5_db(data_training_full, num_classes, header_files, recording_files, selected_classes, twelve_leads,
-                               isTraining=1, selected_classes=selected_classes, filename=training_full_filename)
-            sorted_classes_numbers = dict(sorted(classes_numbers.items(), key=lambda x: int(x[0])))
-            weights = calculate_pos_weights(sorted_classes_numbers.values())
-            np.savetxt("weights_training.csv", weights.detach().cpu().numpy(), delimiter=',')
+            logger.info(f"{training_full_filename} not found, creating database")
+            self.create_hdf5_db(single_fold_data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+                               classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_full_filename)
+            sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
+            weights = self.calculate_pos_weights(sorted_classes_numbers.values())
+            np.savetxt(training_with_validation_weights_filename, np.asarray(weights), delimiter=',')
 
 
         if not os.path.isfile(training_filename):  # _{len(leads)}_training.h5'):
-            create_hdf5_db(data_training, num_classes, header_files, recording_files, selected_classes, twelve_leads,
-                               isTraining=1, selected_classes=selected_classes, filename=training_filename)
-            sorted_classes_numbers = dict(sorted(classes_numbers.items(), key=lambda x: int(x[0])))
+            logger.info(f"{training_filename} not found, creating database")
+            local_training_counts = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+                               classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_filename)
+            self.add_classes_counts(local_training_counts)
+            sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
 
-            weights = calculate_pos_weights(sorted_classes_numbers.values())
-            np.savetxt("weights_training.csv", weights.detach().cpu().numpy(), delimiter=',')
+            weights = self.calculate_pos_weights(sorted_classes_numbers.values())
+            np.savetxt(training_weights_filename, np.asarray(weights), delimiter=',')
 
 
         if not os.path.isfile(validation_filename):  # {len(leads)}_validation.h5'):
-            create_hdf5_db(data_validation, num_classes, header_files, recording_files, selected_classes, twelve_leads,
-                               isTraining=0, selected_classes=selected_classes, filename=validation_filename)
+            logger.info(f"{validation_filename} not found, creating database")
+            local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+                               classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename)
+            self.add_classes_counts(local_validation_counts)
 
         if not os.path.isfile(test_filename):  # {len(leads)}_validation.h5'):
-            create_hdf5_db(data_validation, num_classes, header_files, recording_files, selected_classes, twelve_leads,
-                               isTraining=0, selected_classes=selected_classes, filename=test_filename)
+            logger.info(f"{test_filename} not found, creating database")
+            local_test_counts = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+                               classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename)
+            self.add_classes_counts(local_test_counts)
 
         if weights is None and os.path.isfile(training_filename):
-            weights = torch.tensor(np.loadtxt('weights_training.csv', delimiter=','), device=device)
+            logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
+            weights = torch.tensor(np.loadtxt(training_weights_filename, delimiter=','), device=device)
 
-        classes_occurences_filename = f"classes_in_h5_occurrences_new_{fold}.json"
-        if (sum(classes_numbers.values()) == 0 or None in classes_numbers.values()) and os.path.isfile(classes_occurences_filename):
+        classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
+        if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
+            logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
             with open(classes_occurences_filename, 'r') as f:
-                classes_numbers = json.load(f)
-        elif (len(classes_numbers.values()) != 0 and all(classes_numbers.values())) and not os.path.isfile(classes_occurences_filename):
+                self.classes_numbers = json.load(f)
+        elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
+            logger.info(f"Classes counts > 0, saving counts to {classes_occurences_filename} file")
             with open(classes_occurences_filename, 'w') as f:
-                json.dump(classes_numbers, f)
+                json.dump(self.classes_numbers, f)
 
-        classes_to_classify = dict().fromkeys(selected_classes)
+        logger.info(f"Classes counts: {self.classes_counts}")
+
+        classes_to_classify = dict().fromkeys(self.all_classes)
         index_mapping_from_normal_to_selected = dict()
         tmp_iterator = 0
-        for c in classes:
-            if c in selected_classes:
+        for c in self.classes:
+            if c in self.all_classes:
                 classes_to_classify[c] = tmp_iterator
                 index_mapping_from_normal_to_selected[class_index[c]] = tmp_iterator
                 tmp_iterator += 1
 
-        sorted_classes_numbers = dict(
-            sorted([(k, classes_numbers[k]) for k in classes_to_classify.keys()], key=lambda x: int(x[0])))
+        sorted_classes_counts = dict(
+            sorted([(k, self.classes_counts[k]) for k in classes_to_classify.keys()], key=lambda x: int(x[0])))
 
-        weights = calculate_pos_weights(sorted_classes_numbers.values())
-        print(weights)
+        weights = self.calculate_pos_weights(sorted_classes_counts.values())
+        logger.info(f"Weights vecotr={weights}")
 
 
 
@@ -176,6 +218,7 @@ class UtilityFunctions:
 
 
     def clean_labels(self, header):
+        logger.debug(f"Clean label for header file: {header}")
         classes_from_header = get_labels(header)
         if '733534002' in classes_from_header:
             classes_from_header[classes_from_header.index('733534002')] = '164909002'
@@ -189,14 +232,15 @@ class UtilityFunctions:
         if '427172004' in classes_from_header:
             classes_from_header[classes_from_header.index('427172004')] = '17338001'
             classes_from_header = list(set(classes_from_header))
-        
+
+        logger.debug(f"Returning following classes from {header}: {classes_from_header}")
         return classes_from_header
 
 
 
 
 
-    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, selected_classes=[], filename=None):
+    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None):
         group = None
         if isTraining == 1:
             group = 'training'
@@ -212,9 +256,9 @@ class UtilityFunctions:
     
             grp = h5file.create_group(group)
     
-            dset = grp.create_dataset("data", (1, len(leads), window_size),
-                                      maxshape=(None, len(leads), window_size), dtype='f',
-                                      chunks=(1, len(leads), window_size))
+            dset = grp.create_dataset("data", (1, len(leads), self.window_size),
+                                      maxshape=(None, len(leads), self.window_size), dtype='f',
+                                      chunks=(1, len(leads), self.window_size))
             lset = grp.create_dataset("label", (1, num_classes), maxshape=(None, num_classes), dtype='f',
                                       chunks=(1, num_classes))
             rrset = grp.create_dataset("rr_features", (1, len(leads), 3), maxshape=(None, len(leads), 3), dtype='f',
@@ -228,7 +272,7 @@ class UtilityFunctions:
                 counter += 1
                 # Load header and recording.
                 header = load_header(header_files[i])
-                classes_from_header = self.clean_labels(get_labels(header))
+                classes_from_header = self.clean_labels(header)
   
                 if isTraining < 2:
                     s1 = set(classes_from_header)
@@ -237,7 +281,7 @@ class UtilityFunctions:
                         continue
                 recording = np.array(load_recording(recording_files[i]), dtype=np.float32)
     
-                recording_full = get_leads_values(header, recording, leads)
+                recording_full = self.get_leads_values(header, recording, leads)
                 current_labels = get_labels(header)
                 freq = get_frequency(header)
                 
@@ -249,7 +293,7 @@ class UtilityFunctions:
                 
                 peaks = pan_tompkins_detector(500, recording_full[0])
     
-                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, window_size,
+                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, self.window_size,
                                                                                            peaks)
     
                 local_label = np.zeros((num_classes,), dtype=np.bool)
