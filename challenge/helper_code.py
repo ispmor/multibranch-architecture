@@ -3,7 +3,8 @@
 # Do *not* edit this script.
 # These are helper variables and functions that you can use with your code.
 import os, numpy as np
-
+import logging
+logger = logging.getLogger(__name__)
 # Check if a variable is a number or represents a number.
 def is_number(x):
     try:
@@ -162,8 +163,9 @@ def get_num_samples(header):
 # Get analog-to-digital converter (ADC) gains from header.
 def get_adc_gains(header, leads):
     adc_gains = np.zeros(len(leads))
+    num_leads=0
     for i, l in enumerate(header.split('\n')):
-        entries = l.split(' ')
+        entries = l.replace("(","").replace(")","").split(' ')
         if i==0:
             num_leads = int(entries[1])
         elif i<=num_leads:
@@ -173,6 +175,7 @@ def get_adc_gains(header, leads):
                 try:
                     adc_gains[j] = float(entries[2].split('/')[0])
                 except:
+                    logger.warn(f"Unable to get adc ganis for the following line:\n{l}")
                     pass
         else:
             break
@@ -181,6 +184,7 @@ def get_adc_gains(header, leads):
 # Get baselines from header.
 def get_baselines(header, leads):
     baselines = np.zeros(len(leads))
+    num_leads= 0
     for i, l in enumerate(header.split('\n')):
         entries = l.split(' ')
         if i==0:
@@ -196,12 +200,12 @@ def get_baselines(header, leads):
         else:
             break
     return baselines
-
 # Get labels from header.
 def get_labels(header):
     labels = list()
     for l in header.split('\n'):
-        if l.startswith('#Dx'):
+        logger.debug(f"currently processed line: {l}")
+        if l.startswith('#Dx') or l.startswith('# Dx'):
             try:
                 entries = l.split(': ')[1].split(',')
                 for entry in entries:
@@ -209,6 +213,28 @@ def get_labels(header):
             except:
                 pass
     return labels
+
+
+
+def get_leads_values(header, recording, leads):
+    logger.debug("Entergin get leads values")
+    # Reorder/reselect leads in recordings.
+    available_leads = get_leads(header)
+    indices = list()
+    for lead in leads:
+        i = available_leads.index(lead)
+        indices.append(i)
+    recording = recording[indices, :]
+
+    # Pre-process recordings.
+    adc_gains = get_adc_gains(header, leads)
+    baselines = get_baselines(header, leads)
+
+    num_leads = len(leads)
+    for i in range(num_leads):
+        recording[i, :] = (recording[i, :] - baselines[i]) / adc_gains[i]
+
+    return recording
 
 # Save outputs from model.
 def save_outputs(output_file, recording_id, classes, labels, probabilities):

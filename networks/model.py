@@ -7,6 +7,7 @@ from torch import autograd
 from torch import jit
 import math
 
+import lightning as L
 import pdb
 
 
@@ -787,6 +788,76 @@ class BlendMLP(nn.Module):
             return x1
         return x2
 
+def get_single_network(network, hs, layers, leads, selected_classes, single_peak_length, as_branch):
+    torch.manual_seed(17)
+    if network == "GRU":
+        if as_branch == "alpha":
+            return GRU_ECG_ALPHA(input_size=len(leads),
+                    num_classes=len(selected_classes),
+                    hidden_size=hs,
+                    num_layers=layers,
+                    seq_length=single_peak_length,
+                    model_type=as_branch,
+                    classes=selected_classes)
+        else:
+            return GRU_ECG_BETA(input_size=len(leads),
+                        num_classes=len(selected_classes),
+                        hidden_size=hs,
+                        num_layers=layers,
+                        seq_length=single_peak_length,
+                        model_type=as_branch,
+                        classes=selected_classes)
+    
+    if network == "LSTM":
+        return LSTM_ECG(input_size=len(leads),
+            num_classes=len(selected_classes),
+            hidden_size=hs,
+            num_layers=layers,
+            seq_length=single_peak_length,
+            model_type=as_branch,
+            classes=selected_classes)
+    
+    if network == "LSTM_PEEPHOLE":
+        if as_branch == "alpha":
+            return LSTMPeephole_ALPHA(input_size=len(leads),
+                    num_classes=len(selected_classes),
+                    hidden_size=hs,
+                    num_layers=layers,
+                    seq_length=single_peak_length,
+                    model_type=as_branch,
+                    classes=selected_classes)
+        else:
+            return LSTMPeephole_BETA(input_size=len(leads),
+                        num_classes=len(selected_classes),
+                        hidden_size=hs,
+                        num_layers=layers,
+                        seq_length=single_peak_length,
+                        model_type=as_branch,
+                        classes=selected_classes)
+
+    if network == "NBEATS":
+        if as_branch == "alpha":
+            return Nbeats_alpha(input_size=len(leads),
+                        num_classes=len(selected_classes),
+                        hidden_size=hs,
+                        num_layers=layers,
+                        seq_length=353,
+                        model_type=as_branch,
+                        classes=selected_classes)
+        else:
+            return Nbeats_beta(input_size=len(leads),
+                            num_classes=len(selected_classes),
+                            hidden_size=hs,
+                            seq_length=353,
+                            model_type=as_branch,
+                            classes=selected_classes,
+                            num_layers=layers)
+
+
+    
+
+
+
 
 def get_network( network, alpha_hs, alpha_layers, beta_hs, beta_layers, leads, selected_classes, single_peak_length):
     if network in "GRU":
@@ -878,3 +949,66 @@ def get_network( network, alpha_hs, alpha_layers, beta_hs, beta_layers, leads, s
         net_beta.cuda()
  
     return net, net_beta
+
+
+
+
+
+
+class BranchConfig:
+    network_name = ""
+    single_peak_length = -1
+    hidden_size = -1 
+    layers = -1
+    
+    def __init__(self,network_name, hidden_size, layers, single_peak_length) -> None:
+        self.network_name = network_name
+        self.single_peak_length=single_peak_length
+        self.hidden_size=hidden_size
+        self.layers=layers
+
+
+
+def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes: list, leads: list) -> BlendMLP:
+    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, "alpha")
+    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, "beta")
+
+    return BlendMLP(alpha_branch, beta_branch, classes)
+
+class LightningBlendMLP(L.LightningModule):
+    model = None
+    criterion = None
+    def __init__(self, blendModel, criterion):
+        super().__init__()
+        self.model=blendModel
+        self.criterion=criterion
+
+    def training_step(self, batch, batch_idx):
+        x, y, rr_features, wavelet_features = batch
+        x = torch.transpose(x, 1, 2)
+        rr_features = torch.transpose(rr_features, 1, 2)
+        wavelet_features = torch.transpose(wavelet_features, 1, 2)
+        rr_x = torch.hstack((rr_features, x))
+        rr_wavelets = torch.hstack((rr_features, wavelet_features))
+        pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
+        pca_features = torch.pca_lowrank(pre_pca)
+        pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
+                                        pca_features[2].reshape(pca_features[2].shape[0], -1)))
+        pca_features = pca_features[:, :, None]
+        local_step += 1
+        model.train()
+        forecast = model(rr_x,
+                            rr_wavelets,
+                            pca_features
+                            )
+        #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
+        loss = self.criterion(forecast, y)
+        self.log("train_loss", loss)
+        return loss
+
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+

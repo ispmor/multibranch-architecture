@@ -1,4 +1,5 @@
 import h5py
+from networks.model import BlendMLP
 from pywt import wavedec
 from challenge import *
 from .pan_tompkins_detector import *
@@ -16,12 +17,12 @@ class UtilityFunctions:
     all_classes = ['6374002', '10370003', '17338001', '39732003', '47665007', '59118001', '59931005',
                                 '111975006', '164889003', '164890007', '164909002', '164917005', '164934002',
                                 '164947007', '251146004', '270492004', '284470004', '365413008', '426177001', '426627000',
-                                '426783006', '427084000', '427393009', '445118002', '698252002', '713426002']
+                                '426783006', '427084000', '427393009', '445118002', '698252002', '713426002', '164873001']
             #, '427172004','63593006',      '713427006'   , '733534002']
     classes_counts = dict(zip(['6374002', '10370003', '17338001', '39732003', '47665007', '59118001', '59931005',
                                 '111975006', '164889003', '164890007', '164909002', '164917005', '164934002',
                                 '164947007', '251146004', '270492004', '284470004', '365413008', '426177001', '426627000',
-                                '426783006', '427084000', '427393009', '445118002', '698252002', '713426002'], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+                                '426783006', '427084000', '427393009', '445118002', '698252002', '713426002','164873001'], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
     twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
     six_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF')
     four_leads = ('I', 'II', 'III', 'V2')
@@ -31,6 +32,12 @@ class UtilityFunctions:
 
     window_size = 350
     classes = set()
+    training_filename = 'h5_datasets/cinc_database_training_{0}_{1}.h5'
+    validation_filename = 'h5_datasets/cinc_database_validation_{0}_{1}.h5'
+    training_full_filename = 'h5_datasets/cinc_database_training_full_{0}_{1}.h5'
+    test_filename = 'h5_datasets/cinc_database_test_{0}_{1}.h5'
+    training_weights_filename = "h5_datasets/weights_fold{0}_training.csv"
+    training_with_validation_weights_filename = "h5_datasets/weights_full_fold{0}_training.csv"
 
     #TODO create def initiate_classes_count method which will zero the classes_counts, also we need a global count
 
@@ -64,22 +71,23 @@ class UtilityFunctions:
         return (class_index, classes_counts)
 
     def add_classes_counts(self, new_counts):
+        logger.debug(f"Adding the following classes count: {new_counts}")
         for k, v in new_counts.items():
             self.classes_counts[k] += v
 
-    def prepare_h5_dataset(self, leads, fold, single_fold_data_training, single_fold_data_test, header_files, recording_files):
+    def prepare_h5_dataset(self, leads, fold, single_fold_data_training, single_fold_data_test, header_files, recording_files, classes_index):
         logger.info(f"Preparing H5 dataset for {leads} leads, fold: {fold}")
         training_data_length = len(single_fold_data_training)
         lengths = [int(training_data_length * 0.8), training_data_length - int(training_data_length * 0.8)]
         data_training, data_validation = torch_data.random_split(single_fold_data_training, lengths)
         num_classes = len(self.all_classes)
         weights = None
-        training_filename = f'h5_datasets/cinc_database_training_{leads}_{fold}.h5'
-        validation_filename = f'h5_datasets/cinc_database_validation_{leads}_{fold}.h5'
-        training_full_filename = f'h5_datasets/cinc_database_training_full_{leads}_{fold}.h5'
-        test_filename = f'h5_datasets/cinc_database_test_{leads}_{fold}.h5'
-        training_weights_filename = f"h5_datasets/weights_fold{fold}_training.csv"
-        training_with_validation_weights_filename = f"h5_datasets/weights_full_fold{fold}_training.csv"
+        training_filename = self.training_filename.format(leads, fold)
+        validation_filename = self.validation_filename.format(leads, fold)
+        training_full_filename = self.training_full_filename.format(leads,fold)
+        test_filename = self.test_filename.format(leads,fold)
+        training_weights_filename = self.training_weights_filename.format(fold)
+        training_with_validation_weights_filename = self.training_with_validation_weights_filename.format(fold)
 
 
         #TODO why do I create this dataset?
@@ -137,11 +145,13 @@ class UtilityFunctions:
         for c in self.classes:
             if c in self.all_classes:
                 classes_to_classify[c] = tmp_iterator
-                index_mapping_from_normal_to_selected[class_index[c]] = tmp_iterator
+                index_mapping_from_normal_to_selected[classes_index[c]] = tmp_iterator
                 tmp_iterator += 1
 
         sorted_classes_counts = dict(
             sorted([(k, self.classes_counts[k]) for k in classes_to_classify.keys()], key=lambda x: int(x[0])))
+
+        logger.info(f"Sorted classes counts: {sorted_classes_counts}")
 
         weights = self.calculate_pos_weights(sorted_classes_counts.values())
         logger.info(f"Weights vecotr={weights}")
@@ -172,6 +182,7 @@ class UtilityFunctions:
 
 
     def one_file_training_data(self, recording, single_peak_length, peaks):
+        logger.debug("Entering one_file_training_data")
         x = []
         peaks_len = len(peaks)
         prev_distance = 0
@@ -185,6 +196,7 @@ class UtilityFunctions:
                 prev_distance = peak - peaks[i-1]
     
             if i == peaks_len-1:
+                logger.debug("skipping, as i({i})==peaks_len-1({peaks_len-1})")
                 continue
             else:
                 next_distance = peaks[i+1] - peak
@@ -205,14 +217,15 @@ class UtilityFunctions:
                 a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], 'db2', level=4)
                 wavelet_features = np.hstack((a4, d4, d3, d2, d1))
             else:
+                logger.debug("Skipping append as peak = {peak}")
                 continue
             x.append(signal)
             rr_features.append([[prev_distance, next_distance, avg] for i in range(len(recording))])
             coeffs.append(wavelet_features)
     
-        x = np.array(x, dtype=np.float)
-        rr_features = np.array(rr_features, dtype=np.float)
-        coeffs = np.asarray(coeffs,  dtype=np.float)
+        x = np.array(x, dtype=np.float64)
+        rr_features = np.array(rr_features, dtype=np.float64)
+        coeffs = np.asarray(coeffs,  dtype=np.float64)
     
         return rr_features, x, coeffs
 
@@ -220,6 +233,8 @@ class UtilityFunctions:
     def clean_labels(self, header):
         logger.debug(f"Clean label for header file: {header}")
         classes_from_header = get_labels(header)
+        
+        logger.debug(f"Classes found in header: {classes_from_header}")
         if '733534002' in classes_from_header:
             classes_from_header[classes_from_header.index('733534002')] = '164909002'
             classes_from_header = list(set(classes_from_header))
@@ -233,7 +248,7 @@ class UtilityFunctions:
             classes_from_header[classes_from_header.index('427172004')] = '17338001'
             classes_from_header = list(set(classes_from_header))
 
-        logger.debug(f"Returning following classes from {header}: {classes_from_header}")
+        logger.debug(f"Returning following classes:: {classes_from_header}")
         return classes_from_header
 
 
@@ -269,34 +284,43 @@ class UtilityFunctions:
     
             counter = 0
             for i in num_recordings:
+                logger.debug(f"Iterating over {i} out of {num_recordings} files")
                 counter += 1
                 # Load header and recording.
                 header = load_header(header_files[i])
-                classes_from_header = self.clean_labels(header)
+                current_labels= self.clean_labels(header)
   
                 if isTraining < 2:
-                    s1 = set(classes_from_header)
+                    s1 = set(current_labels)
                     s2 = set(selected_classes)
+                    logger.debug(f"set {s1} and s2 {s2}")
                     if not s1.intersection(s2):
+                        logger.debug("sets do not intersect")
                         continue
+
                 recording = np.array(load_recording(recording_files[i]), dtype=np.float32)
-    
-                recording_full = self.get_leads_values(header, recording, leads)
-                current_labels = get_labels(header)
-                freq = get_frequency(header)
+   
+
+                recording_full = get_leads_values(header, recording, leads)
+                logger.debug(recording_full)
                 
+                freq = get_frequency(header)
+                logger.debug(f"Frequency: {freq}")
                 if freq != float(500):
                     recording_full = self.equalize_signal_frequency(freq, recording_full)
     
                 if recording_full.max() == 0 and recording_full.min() == 0:
+                    logging.debug("Skipping as recording full seems to be none or empty")
                     continue
                 
                 peaks = pan_tompkins_detector(500, recording_full[0])
+                logger.debug(f"Peaks: {peaks}") 
     
                 rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, self.window_size,
                                                                                            peaks)
+                logger.debug(f"RR Features: {rr_features}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features}")
     
-                local_label = np.zeros((num_classes,), dtype=np.bool)
+                local_label = np.zeros((num_classes,), dtype=bool)
                 for label in current_labels:
                     if label in classes:
                         j = classes.index(label)
@@ -304,7 +328,9 @@ class UtilityFunctions:
     
                 new_windows = recording_full.shape[0]
                 if new_windows == 0:
+                    logger.debug("New windows is 0! SKIPPING")
                     continue
+
                 dset.resize(dset.shape[0] + new_windows, axis=0)
                 dset[-new_windows:] = recording_full
     
@@ -320,16 +346,66 @@ class UtilityFunctions:
                     waveset[-new_windows:] = wavelet_features[:-1]
                 else:
                     waveset[-new_windows:] = wavelet_features
-    
-                for c in classes_from_header:
+   
+                logger.debug(f"Classes in header: {current_labels}")
+                for c in current_labels:
                     if c in selected_classes:
                         for i in range(new_windows):  #
                             if c in classes_numbers and classes_numbers[c]:
                                 classes_numbers[c] += 1
                             else:
                                 classes_numbers[c] = 1
+                logger.debug(f"Classes counts after {counter} file: {classes_numbers}")
 
         print(f'Successfully created {group} dataset {filename}')
         return classes_numbers
 
 
+    def run_model(model: BlendMLP, header, recording):
+        classes = model.classes
+        leads = model.leads
+    
+        x_features = get_leads_values(header, recording.astype(np.float), leads)
+        freq = get_frequency(header)
+        if freq != float(500):
+            x_features = naf.equalize_signal_frequency(freq, x_features)
+    
+        peaks = pan_tompkins_detector(500, x_features[0])
+    
+        rr_features, x_features, wavelet_features = naf.one_file_training_data(x_features, window_size, peaks)
+        x_features = torch.Tensor(x_features)
+        rr_features = torch.Tensor(rr_features)
+        wavelet_features = torch.Tensor(wavelet_features)
+    
+        # Predict labels and probabilities.
+        if len(x_features) == 0:
+            labels = np.zeros(len(classes))
+            probabilities_mean = np.zeros(len(classes))
+            labels=probabilities_mean > 0.5
+            return classes, labels, probabilities_mean, 0
+        else:
+            x = torch.transpose(x_features, 1, 2)
+            rr_features = torch.transpose(rr_features, 1, 2)
+            wavelet_features = torch.transpose(wavelet_features, 1, 2)
+    
+            rr_x = torch.hstack((rr_features, x))
+            rr_wavelets = torch.hstack((rr_features, wavelet_features))
+    
+            pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
+            pca_features = torch.pca_lowrank(pre_pca)
+            pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
+                                         pca_features[2].reshape(pca_features[2].shape[0], -1)))
+            pca_features = pca_features[:, :, None]
+    
+            with torch.no_grad():
+                start = time.time()
+                scores = model(rr_x.to(device), rr_wavelets.to(device), pca_features.to(device))
+                end = time.time()
+                peak_time = (end - start) / len(peaks)
+                del rr_x, rr_wavelets, rr_features, x, pca_features, pre_pca
+                probabilities = nn.functional.sigmoid(scores)
+                probabilities_mean = torch.mean(probabilities, 0).detach().cpu().numpy()
+                labels = probabilities_mean > 0.5
+    
+                return classes, labels, probabilities_mean, peak_time
+    
