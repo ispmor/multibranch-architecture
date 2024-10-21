@@ -8,6 +8,7 @@ from .config import *
 import numpy as np
 import logging
 import torch
+import csv
 
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class UtilityFunctions:
                                 '111975006', '164889003', '164890007', '164909002', '164917005', '164934002',
                                 '164947007', '251146004', '270492004', '284470004', '365413008', '426177001', '426627000',
                                 '426783006', '427084000', '427393009', '445118002', '698252002', '713426002','164873001'], [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+    device=None
     twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
     six_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF')
     four_leads = ('I', 'II', 'III', 'V2')
@@ -39,6 +41,11 @@ class UtilityFunctions:
     training_weights_filename = "h5_datasets/weights_fold{0}_training.csv"
     training_with_validation_weights_filename = "h5_datasets/weights_full_fold{0}_training.csv"
 
+
+
+    def __init__(self, device) -> None:
+        self.device = device
+
     #TODO create def initiate_classes_count method which will zero the classes_counts, also we need a global count
 
     def calculate_pos_weights(self, class_counts):
@@ -47,7 +54,7 @@ class UtilityFunctions:
         pos_weights = [(all_counts-pos_count) / (pos_count + 1e-5) for pos_count in  class_counts]
 
         logger.info(f"Result positional weights: {pos_weights}")
-        return pos_weights #torch.as_tensor(pos_weights, dtype=torch.float, device=device)
+        return pos_weights #torch.as_tensor(pos_weights, dtype=torch.float, device=self.device)
 
 
     def extract_classes(self, header_files):
@@ -125,7 +132,7 @@ class UtilityFunctions:
 
         if weights is None and os.path.isfile(training_filename):
             logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
-            weights = torch.tensor(np.loadtxt(training_weights_filename, delimiter=','), device=device)
+            weights = torch.tensor(np.loadtxt(training_weights_filename, delimiter=','), device=self.device)
 
         classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
         if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
@@ -399,7 +406,7 @@ class UtilityFunctions:
     
             with torch.no_grad():
                 start = time.time()
-                scores = model(rr_x.to(device), rr_wavelets.to(device), pca_features.to(device))
+                scores = model(rr_x.to(self.device), rr_wavelets.to(self.device), pca_features.to(self.device))
                 end = time.time()
                 peak_time = (end - start) / len(peaks)
                 del rr_x, rr_wavelets, rr_features, x, pca_features, pre_pca
@@ -409,3 +416,17 @@ class UtilityFunctions:
     
                 return classes, labels, probabilities_mean, peak_time
     
+
+    def load_training_weights(self, fold):
+        data = []
+        for i in range(fold-1):
+            logger.debug(f"Loading {self.training_with_validation_weights_filename.format(i)}")
+            with open(self.training_with_validation_weights_filename.format(i), 'r') as f:
+                reader = csv.reader(f)
+                data.append(list(reader))
+        average=np.mean(data, axis=0, dtype=float)
+        result=torch.from_numpy(average).to(self.device)
+        logger.debug(f"Loaded list of weights: {result}")
+        return result
+
+

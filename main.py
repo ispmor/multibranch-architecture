@@ -1,6 +1,6 @@
 import enum
 from networks.model import LSTM_ECG
-from training.network_trainer import TrainingConfig
+from training.network_trainer import NetworkTrainer, TrainingConfig
 from utilities import *
 from networks.model import *
 from challenge import find_challenge_files
@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 data_directory="../data/physionet.org/files/challenge-2021/1.0.3/training/georgia/g1"
 clean_datasets_var=False
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 def main():
     alpha_config = BranchConfig("LSTM", 7, 2, 350)
     beta_config = BranchConfig("LSTM", 7, 2, 350)
@@ -26,7 +28,7 @@ def main():
     if clean_datasets_var:
         clean_datasets_directory()
     logging.basicConfig(filename=f'logs/{datetime.datetime.now()}.log', level=logging.DEBUG)
-    utilityFunctions = UtilityFunctions()
+    utilityFunctions = UtilityFunctions(device)
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
     
@@ -47,17 +49,21 @@ def main():
             logger.info(f"Beginning {fold} fold processing")
             utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index)
 
+
+    weights = utilityFunctions.load_training_weights(fold=k_folds)
+
+    for leads in utilityFunctions.leads_set:
+        blendModel = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
     
-    training_config = TrainingConfig(batch_size=1500,
+        training_config = TrainingConfig(batch_size=1500,
                                      n_epochs_stop=6,
                                      num_epochs=25,
                                      lr_rate=0.01,
                                      criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
-                                     optimizer=optim.Adam(model.parameters(), lr=0.01)
+                                     optimizer=torch.optim.Adam(blendModel.parameters(), lr=0.01),
+                                     device=device
                                      )
-    blendModel = get_BlendMLP(alpha_config, beta_config, classes)
 
-    for leads in utilityFunctions.leads_set:
         for fold in range(k_folds):
              training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads, fold), recursive=False,
                                            load_data=False,
@@ -67,8 +73,22 @@ def main():
                                                load_data=False,
                                              data_cache_size=4, transform=None, leads=leads_idx)
              logger.info("Loaded validation dataset")
+
+
              training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
              validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
+
+             networkTrainer=NetworkTrainer(selected_classes=classes, training_config=training_config)
+
+             for epoch in range(training_config.num_epochs):
+                 epoch_loss = networkTrainer.train_network(blendModel, training_data_loader, epoch)
+                 epoch_validation_loss = networkTrainer.validate_network(model, validation_data_loader, epoch)
+
+                 logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
+                 logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
+
+                 
+
 
 
 

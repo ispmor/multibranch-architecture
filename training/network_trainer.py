@@ -29,13 +29,9 @@ class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
     training_config = None
-    alpha_config = None
-    beta_config = None
-    def __init__(self, selected_classes: list, training_config: TrainingConfig, alpha_config, beta_config ) -> None:
+    def __init__(self, selected_classes: list, training_config: TrainingConfig) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
-        self.alpha_config=alpha_config
-        self.beta_config=beta_config
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
