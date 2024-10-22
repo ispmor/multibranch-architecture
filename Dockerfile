@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.7.1-cuda11.0-cudnn8-devel
+FROM pytorch/pytorch:2.4.1-cuda12.1-cudnn9-devel
 
 ## The MAINTAINER instruction sets the author field of the generated images.
 MAINTAINER puszkarski.bartosz@gmail.com
@@ -6,7 +6,7 @@ MAINTAINER puszkarski.bartosz@gmail.com
 ## DO NOT EDIT the 3 lines.
 RUN mkdir /phd
 COPY ./ /phd
-WORKDIR /phd
+WORKDIR /physionet
 
 ## Install your dependencies here using apt install, etc.
 
