@@ -53,7 +53,7 @@ def main():
     weights = utilityFunctions.load_training_weights(fold=k_folds)
 
     for leads in utilityFunctions.leads_set:
-        blendModel = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
+        blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes, leads=leads)
     
         training_config = TrainingConfig(batch_size=1500,
                                      n_epochs_stop=6,
