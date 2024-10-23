@@ -6,7 +6,7 @@ MAINTAINER puszkarski.bartosz@gmail.com
 ## DO NOT EDIT the 3 lines.
 RUN mkdir /phd
 COPY ./ /phd
-WORKDIR /physionet
+WORKDIR /phd
 
 ## Install your dependencies here using apt install, etc.
 
