@@ -318,6 +318,7 @@ class LSTM_ECG(nn.Module):
             out = self.fc(out)  # Final Output
             return out
         else:
+            rr_wavelets=rr_x #as we pass only one argument which is pca vector in fact
             h_0 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_wavelets.size(0), self.hidden_size,
                             device=torch.device('cuda:0')))  # hidden state
