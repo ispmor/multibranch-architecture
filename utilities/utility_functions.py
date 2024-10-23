@@ -424,7 +424,7 @@ class UtilityFunctions:
             with open(self.training_with_validation_weights_filename.format(i), 'r') as f:
                 reader = csv.reader(f)
                 data.append(list(reader))
-        average=np.mean(data, axis=0, dtype=float)
+        average=np.mean(data, axis=0, dtype=float).flatten()
         result=torch.from_numpy(average).to(self.device)
         logger.debug(f"Loaded list of weights: {result}")
         return result
