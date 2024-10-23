@@ -72,7 +72,7 @@ class NetworkTrainer:
                 local_step += 1
                 model.train()
                 forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
-                logger.debug(s"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nShape of rr_features: {rr_features.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
+                logger.debug(f"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nShape of rr_features: {rr_features.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
                 epoch_loss.append(loss)
