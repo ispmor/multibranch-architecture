@@ -291,7 +291,7 @@ class LSTM_ECG(nn.Module):
 
         self.relu = nn.ReLU()
 
-    def forward(self, rr_x, rr_wavelets):
+    def forward(self, rr_x=None, rr_wavelets=None):
         if self.model_type == 'alpha':
             h_0 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
