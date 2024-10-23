@@ -78,7 +78,7 @@ def main():
              training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
              validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
 
-             networkTrainer=NetworkTrainer(selected_classes=classes, training_config=training_config)
+             networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
 
              for epoch in range(training_config.num_epochs):
                  epoch_loss = networkTrainer.train_network(blendModel, training_data_loader, epoch)
