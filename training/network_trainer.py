@@ -57,6 +57,7 @@ class NetworkTrainer:
             logger.info(f"...{epoch}/{self.training_config.num_epochs}")
             local_step = 0
             epoch_loss = []
+            model.to(self.training_config.device)
             for x, y, rr_features, wavelet_features in training_data_loader:
                 x = torch.transpose(x, 1, 2)
                 rr_features = torch.transpose(rr_features, 1, 2)
@@ -82,7 +83,7 @@ class NetworkTrainer:
                 if local_step % 50 == 0:
                     logger.info(f"Training loss at step {local_step} = {loss}")
 
-                return epoch_loss
+            return epoch_loss
 
 
 
@@ -90,6 +91,7 @@ class NetworkTrainer:
     def validate_network(self, model, validation_data_loader, epoch):
         logger.info(f"Entering validation, epoch: {epoch}")
         epoch_loss = []
+        model.to(self.training_config.device)
         with torch.no_grad():
             model.eval()
             for x, y, rr_features, wavelet_features in validation_data_loader:
