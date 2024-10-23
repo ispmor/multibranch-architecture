@@ -108,6 +108,6 @@ class NetworkTrainer:
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device) # <- zmienione
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
                 epoch_loss.append(loss)
-        return epoch_validation_loss
+        return epoch_loss
 
 
