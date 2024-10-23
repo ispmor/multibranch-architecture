@@ -20,7 +20,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def main():
     alpha_config = BranchConfig("LSTM", 7, 2, 350)
     beta_config = BranchConfig("LSTM", 7, 2, 350)
-    classes=['LBBB', 'STD', 'Normal', 'RBBB', 'AF', 'I-AVB', 'STE', 'PAC', 'PVC']
 
 
     
@@ -82,7 +81,7 @@ def main():
 
              for epoch in range(training_config.num_epochs):
                  epoch_loss = networkTrainer.train_network(blendModel, training_data_loader, epoch)
-                 epoch_validation_loss = networkTrainer.validate_network(model, validation_data_loader, epoch)
+                 epoch_validation_loss = networkTrainer.validate_network(blendModel, validation_data_loader, epoch)
 
                  logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
                  logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
