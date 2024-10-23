@@ -76,7 +76,7 @@ class NetworkTrainer:
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
                 epoch_loss.append(loss)
-                optimizer.zero_grad()
+                self.training_config.optimizer.zero_grad()
                 loss.backward()
                 if local_step % 50 == 0:
                     logger.info(f"Training loss at step {local_step} = {loss}")
@@ -106,7 +106,7 @@ class NetworkTrainer:
                 forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
                 # , rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device) # <- zmienione
-                loss = criterion(forecast, y.to(self.training_config.device))
+                loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
                 epoch_loss.append(loss)
         return epoch_validation_loss
 
