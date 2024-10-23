@@ -73,7 +73,7 @@ class NetworkTrainer:
                 model.train()
                 forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
-                loss = criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
+                loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
                 epoch_loss.append(loss)
                 optimizer.zero_grad()
                 loss.backward()
