@@ -71,10 +71,7 @@ class NetworkTrainer:
                 pca_features = pca_features[:, :, None]
                 local_step += 1
                 model.train()
-                forecast = model(rr_x.to(self.training_config.device),
-                                 rr_wavelets.to(self.training_config.device),
-                                 pca_features.to(self.training_config.device)
-                                 )
+                forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
                 loss = criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
                 epoch_loss.append(loss)
@@ -105,9 +102,7 @@ class NetworkTrainer:
                 pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
                                                 pca_features[2].reshape(pca_features[2].shape[0], -1)))
                 pca_features = pca_features[:, :, None]
-                forecast = model(rr_x.to(self.training_config.device),
-                                 rr_wavelets.to(self.training_config.device),
-                                 pca_features.to(self.training_config.device))
+                forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
                 # , rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
                 #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device) # <- zmienione
                 loss = criterion(forecast, y.to(self.training_config.device))
