@@ -122,12 +122,13 @@ class NetworkTrainer:
     def train(self, blendModel, training_data_loader, validation_data_loader):
         best_model_name=""
         epochs_no_improve=0
+        min_val_loss=999999
         for epoch in range(self.training_config.num_epochs):
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch)
             logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
             logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
-            logger.info("not improving since:", epochs_no_improve)
+            logger.info(f"not improving since: {epochs_no_improve}")
             if epoch_validation_loss < min_val_loss:
                 epochs_no_improve = 0
                 min_val_loss = epoch_validation_loss
