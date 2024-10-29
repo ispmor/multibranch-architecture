@@ -121,6 +121,7 @@ class NetworkTrainer:
 
     def train(self, blendModel, training_data_loader, validation_data_loader):
         best_model_name=""
+        epochs_no_improve=0
         for epoch in range(self.training_config.num_epochs):
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch)
