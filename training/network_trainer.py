@@ -134,7 +134,7 @@ class NetworkTrainer:
                 epochs_no_improve = 0
                 min_val_loss = epoch_validation_loss
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
-                model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
+                model_name = f"models_repository/{self.alpha_config.network_name}_{self.beta_config.network_name}_{leads}_{time.time()}.th"
                 utilityFunctions.save(model_name,blendModel, optimizer, list(sorted(utilityFunctions.all_classes)), leads)
                 best_model_name=model_name
             else:
