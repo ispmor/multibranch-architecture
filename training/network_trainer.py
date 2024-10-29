@@ -135,7 +135,8 @@ class NetworkTrainer:
                 min_val_loss = epoch_validation_loss
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
                 model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
-                self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
+                logger.debug(f"saving model: {model_name}")
+                self.save(model_name,blendModel, optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
             else:
                 epochs_no_improve += 1
@@ -159,7 +160,7 @@ class NetworkTrainer:
             'leads': leads,
             'model_state_dict': model.state_dict(),
             'optimiser_state_dict': optimiser.state_dict()
-            }, f"models_repository/{checkpoint_name}")
+            }, checkpoint_name)
 
 
 
