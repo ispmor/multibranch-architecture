@@ -80,7 +80,7 @@ def main():
 
             networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
 
-            trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, validation_data_loader, fold, leads)
+            trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads)
             logger.info(f"Best trained model filename: {trained_model_name}")
 
             trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads, device)
