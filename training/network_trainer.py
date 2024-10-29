@@ -82,6 +82,7 @@ class NetworkTrainer:
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
             loss.backward()
+            self.training_config.optimizer.step()
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
