@@ -120,7 +120,7 @@ class NetworkTrainer:
 
 
 
-    def train(self, blendModel, training_data_loader, validation_data_loader, fold):
+    def train(self, blendModel, training_data_loader, validation_data_loader, fold, leads):
         best_model_name=""
         epochs_no_improve=0
         min_val_loss=999999
