@@ -1,5 +1,5 @@
 import h5py
-from networks.model import BlendMLP
+from networks.model import BlendMLP, get_BlendMLP
 from pywt import wavedec
 from challenge import *
 from .pan_tompkins_detector import *
