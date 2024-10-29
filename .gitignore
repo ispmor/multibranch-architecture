@@ -1,4 +1,5 @@
 h5_datasets/
+models_repository/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
