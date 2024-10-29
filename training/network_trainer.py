@@ -138,8 +138,8 @@ class NetworkTrainer:
                 best_model_name=model_name
             else:
                 epochs_no_improve += 1
-            if epoch > 10 and epochs_no_improve >= training_config.n_epochs_stop:
-                print(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
+            if epoch > 10 and epochs_no_improve >= self.training_config.n_epochs_stop:
+                logger.warn(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
                 break
         return best_model_name
 
