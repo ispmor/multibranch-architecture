@@ -439,7 +439,7 @@ class UtilityFunctions:
 
 
     
-    def load_model(filename, alpha_config, beta_config, classes, leads, device):
+    def load_model(self, filename, alpha_config, beta_config, classes, leads, device):
         torch.cuda.set_device(0)
         checkpoint = torch.load(f"models_repository/{filename}", map_location=torch.device(device))
         model = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
