@@ -141,9 +141,6 @@ class NetworkTrainer:
             if epoch > 10 and epochs_no_improve >= training_config.n_epochs_stop:
                 print(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
                 break
-            if torch.isnan(min_val_loss).any():
-                print("NaN detected, stopping")
-                break
         return best_model_name
 
 
