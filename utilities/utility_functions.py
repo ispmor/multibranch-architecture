@@ -136,7 +136,7 @@ class UtilityFunctions:
 
         classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
         if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
-            logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
+                logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
             with open(classes_occurences_filename, 'r') as f:
                 self.classes_numbers = json.load(f)
         elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
@@ -429,4 +429,28 @@ class UtilityFunctions:
         logger.debug(f"Loaded list of weights: {result}")
         return result
 
+    def save(self, checkpoint_name, model, optimiser, classes, leads):
+        torch.save({
+            'classes': classes,
+            'leads': leads,
+            'model_state_dict': model.state_dict(),
+            'optimiser_state_dict': optimiser.state_dict()
+        }, checkpoint_name)
+
+
+    
+    def load_model(filename, alpha_config, beta_config, classes, leads, device):
+        torch.cuda.set_device(0)
+        checkpoint = torch.load(filename, map_location=torch.device(device))
+    
+    
+        model = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
+        net, net_beta = get_network(network, alpha_hs, alpha_layers, beta_hs, beta_layers, checkpoint["leads"], checkpoint["classes"], 353)
+        model = BlendMLP(net, net_beta, checkpoint["classes"])
+    
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.leads = checkpoint['leads']
+        model.cuda()
+        logger.info(f'Restored checkpoint from {filename}.') 
+        return model
 

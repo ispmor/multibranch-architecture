@@ -64,29 +64,34 @@ def main():
                                      )
 
         for fold in range(k_folds):
-             training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads, fold), recursive=False,
+            logger.info(f"Training FOLD: {k_folds}")
+            training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads, fold), recursive=False,
                                            load_data=False,
                                            data_cache_size=4, transform=None, leads=leads_idx)
-             logger.info("Loaded training dataset")
-             validation_dataset = HDF5Dataset('./' + utilityFunctions.validation_filename.format(leads,fold), recursive=False,
+            logger.info("Loaded training dataset")
+            validation_dataset = HDF5Dataset('./' + utilityFunctions.validation_filename.format(leads,fold), recursive=False,
                                                load_data=False,
                                              data_cache_size=4, transform=None, leads=leads_idx)
-             logger.info("Loaded validation dataset")
+            logger.info("Loaded validation dataset")
 
 
-             training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
-             validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
+            training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
+            validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
 
-             networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
+            networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
 
-             for epoch in range(training_config.num_epochs):
-                 epoch_loss = networkTrainer.train_network(blendModel, training_data_loader, epoch)
-                 epoch_validation_loss = networkTrainer.validate_network(blendModel, validation_data_loader, epoch)
+            trained_model_name= networkTrainer.train(blendModel, training_data_loader, validation_data_loader)
+            logger.info(f"Best trained model filename: {trained_model_name}")
 
-                 logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
-                 logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
+            trained_model = utilityFunctions.load(trained_model_name, alpha_config, beta_config, utility_functions.all_classes, leads, device)
+            
 
-                 
+
+
+
+
+
+
 
 
 
