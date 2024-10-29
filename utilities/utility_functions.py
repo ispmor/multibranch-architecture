@@ -435,18 +435,16 @@ class UtilityFunctions:
             'leads': leads,
             'model_state_dict': model.state_dict(),
             'optimiser_state_dict': optimiser.state_dict()
-        }, checkpoint_name)
+            }, f"models_repository/{checkpoint_name}")
 
 
     
     def load_model(filename, alpha_config, beta_config, classes, leads, device):
         torch.cuda.set_device(0)
-        checkpoint = torch.load(filename, map_location=torch.device(device))
+        checkpoint = torch.load(f"models_repository/{filename}", map_location=torch.device(device))
     
     
         model = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
-        net, net_beta = get_network(network, alpha_hs, alpha_layers, beta_hs, beta_layers, checkpoint["leads"], checkpoint["classes"], 353)
-        model = BlendMLP(net, net_beta, checkpoint["classes"])
     
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
