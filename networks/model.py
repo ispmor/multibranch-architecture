@@ -769,6 +769,10 @@ class CustomLSTMPeephole_BETA(nn.Module):
 
 
 class BlendMLP(nn.Module):
+    classes=[]
+    modelA=None
+    modelB=None
+    linear=None
     def __init__(self, modelA, modelB, classes):
         super(BlendMLP, self).__init__()
         self.modelA = modelA

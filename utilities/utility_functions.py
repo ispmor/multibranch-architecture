@@ -429,14 +429,6 @@ class UtilityFunctions:
         logger.debug(f"Loaded list of weights: {result}")
         return result
 
-    def save(self, checkpoint_name, model, optimiser, classes, leads):
-        torch.save({
-            'classes': classes,
-            'leads': leads,
-            'model_state_dict': model.state_dict(),
-            'optimiser_state_dict': optimiser.state_dict()
-            }, f"models_repository/{checkpoint_name}")
-
 
     
     def load_model(self, filename, alpha_config, beta_config, classes, leads, device):
