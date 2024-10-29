@@ -136,7 +136,7 @@ class UtilityFunctions:
 
         classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
         if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
-                logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
+            logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
             with open(classes_occurences_filename, 'r') as f:
                 self.classes_numbers = json.load(f)
         elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
@@ -442,10 +442,7 @@ class UtilityFunctions:
     def load_model(filename, alpha_config, beta_config, classes, leads, device):
         torch.cuda.set_device(0)
         checkpoint = torch.load(f"models_repository/{filename}", map_location=torch.device(device))
-    
-    
         model = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
-    
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
         model.cuda()
