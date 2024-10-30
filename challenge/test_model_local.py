@@ -194,7 +194,7 @@ def load_labels(label_files, classes):
     num_classes = len(classes)
 
     # Use one-hot encoding for the labels.
-    labels = np.zeros((num_recordings, num_classes), dtype=np.bool)
+    labels = np.zeros((num_recordings, num_classes), dtype=bool)
 
     # Iterate over the recordings.
     for i in range(num_recordings):
@@ -222,7 +222,7 @@ def load_classifier_outputs(recording_binary, recording_scalars, recording_c, cl
 
 
     # Use one-hot encoding for the outputs.
-    binary_outputs = np.zeros((num_recordings, num_classes), dtype=np.bool)
+    binary_outputs = np.zeros((num_recordings, num_classes), dtype=bool)
     scalar_outputs = np.zeros((num_recordings, num_classes), dtype=np.float64)
 
     # Iterate over the recordings.
@@ -533,7 +533,7 @@ def compute_challenge_metric(weights, labels, outputs, classes, sinus_rhythm):
     correct_score = np.nansum(weights * A)
 
     # Compute the score for the model that always chooses the sinus rhythm class.
-    inactive_outputs = np.zeros((num_recordings, num_classes), dtype=np.bool)
+    inactive_outputs = np.zeros((num_recordings, num_classes), dtype=bool)
     inactive_outputs[:, sinus_rhythm_index] = 1
     A = compute_modified_confusion_matrix(labels, inactive_outputs)
     inactive_score = np.nansum(weights * A)
