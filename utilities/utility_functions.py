@@ -472,7 +472,7 @@ class UtilityFunctions:
         logger.info('--- Accuracy: ', accuracy)
         f_measure, f_measure_classes = compute_f_measure(labels, binary_outputs_local)
         logger.info('--- F-measure: ', f_measure)
-        challenge_metric = compute_challenge_metric(weights_eval, labels, binary_outputs_local, classes_eval, sinus_rhythm = set(['426783006'])
+        challenge_metric = compute_challenge_metric(weights_eval, labels, binary_outputs_local, classes_eval, set(['426783006']))
         logger.info('--- Challenge metric: ', challenge_metric)
         logger.info("########################################################")
 
