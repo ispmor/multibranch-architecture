@@ -376,7 +376,7 @@ class UtilityFunctions:
         classes = model.classes
         leads = model.leads
     
-        x_features = get_leads_values(header, recording.astype(np.float), leads)
+        x_features = get_leads_values(header, recording.astype(float), leads)
         freq = get_frequency(header)
         if freq != float(500):
             x_features = naf.equalize_signal_frequency(freq, x_features)
