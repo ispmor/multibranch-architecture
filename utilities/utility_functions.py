@@ -379,11 +379,11 @@ class UtilityFunctions:
         x_features = get_leads_values(header, recording.astype(float), leads)
         freq = get_frequency(header)
         if freq != float(500):
-            x_features = naf.equalize_signal_frequency(freq, x_features)
+            x_features = self.equalize_signal_frequency(freq, x_features)
     
         peaks = pan_tompkins_detector(500, x_features[0])
     
-        rr_features, x_features, wavelet_features = naf.one_file_training_data(x_features, window_size, peaks)
+        rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, window_size, peaks)
         x_features = torch.Tensor(x_features)
         rr_features = torch.Tensor(rr_features)
         wavelet_features = torch.Tensor(wavelet_features)
