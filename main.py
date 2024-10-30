@@ -21,9 +21,6 @@ def main():
     alpha_config = BranchConfig("LSTM", 7, 2, 350)
     beta_config = BranchConfig("LSTM", 7, 2, 350)
 
-
-    
-
     if clean_datasets_var:
         clean_datasets_directory()
     logging.basicConfig(filename=f'logs/{datetime.datetime.now()}.log', level=logging.DEBUG)
@@ -44,17 +41,7 @@ def main():
     for leads in utilityFunctions.leads_set:
         logger.info(f"Preparing database for {leads} leads.")
         leads_idx = [utilityFunctions.twelve_leads.index(i) for i in leads]
-
-        for fold, (data_training_full, data_test) in enumerate(fold_splits):
-            logger.info(f"Beginning {fold} fold processing")
-            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index)
-
-
-    weights = utilityFunctions.load_training_weights(fold=k_folds)
-
-    for leads in utilityFunctions.leads_set:
         blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes, leads=leads)
-    
         training_config = TrainingConfig(batch_size=1500,
                                      n_epochs_stop=6,
                                      num_epochs=25,
@@ -64,7 +51,12 @@ def main():
                                      device=device
                                      )
 
-        for fold in range(k_folds):
+        for fold, (data_training_full, data_test) in enumerate(fold_splits):
+            logger.info(f"Beginning {fold} fold processing")
+            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index)
+
+            weights = utilityFunctions.load_training_weights(fold=k_folds)
+
             logger.info(f"Training FOLD: {k_folds}")
             training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads, fold), recursive=False,
                                            load_data=False,
