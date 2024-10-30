@@ -1,4 +1,4 @@
-import enum
+from datetime import datetime
 from networks.model import LSTM_ECG
 from training.network_trainer import NetworkTrainer, TrainingConfig
 from utilities import *
@@ -39,6 +39,7 @@ def main():
     k_folds = 5
     kfold = KFold(n_splits=k_folds, shuffle=True)
     fold_splits = kfold.split(list(range(num_recordings)))
+    logger.debug(fold_splits)
 
     for leads in utilityFunctions.leads_set:
         logger.info(f"Preparing database for {leads} leads.")
@@ -84,7 +85,10 @@ def main():
             logger.info(f"Best trained model filename: {trained_model_name}")
 
             trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads, device)
-            
+
+            results = utilityFunctions.test_network(trained_model,"weights_eval.csv", fold_splits[fold], header_files, recording_files, fold)
+
+            results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
 
 
 

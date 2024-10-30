@@ -2,13 +2,17 @@ import h5py
 from networks.model import BlendMLP, get_BlendMLP
 from pywt import wavedec
 from challenge import *
+from utilities.results_handling import ResultHandler
 from .pan_tompkins_detector import *
 from torch.utils import data as torch_data
 from .config import *
+from test_model_localy import *
+from .results_handler import *
 import numpy as np
 import logging
 import torch
 import csv
+
 
 
 logger = logging.getLogger(__name__)
@@ -128,6 +132,7 @@ class UtilityFunctions:
             logger.info(f"{test_filename} not found, creating database")
             local_test_counts = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename)
+            
             self.add_classes_counts(local_test_counts)
 
         if weights is None and os.path.isfile(training_filename):
@@ -440,4 +445,37 @@ class UtilityFunctions:
         model.cuda()
         logger.info(f'Restored checkpoint from {filename}.') 
         return model
+    
+
+
+    def test_network(self, model, weights_file, data_test, header_files, recording_files, fold  )-> ResultHandler:
+        classes_eval, weights_eval = load_weights(weights_file)
+        scalar_outputs = np.ndarray((len(data_test), 26))
+        binary_outputs = [[] for i in range(len(data_test))]
+        c = np.ndarray((len(data_test), 26))
+        times = np.zeros(len(data_test))
+        tmp_header_files = [header_files[i] for i in data_test]
+        labels = load_labels(tmp_header_files, classes_eval)
+        for i, header_index in enumerate(data_test):
+            header = load_header(header_files[header_index])
+            leads_local = get_leads(header)
+            recording = load_recording(recording_files[header_index])
+            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording)
+        logger.info("########################################################")
+        logger.info(f"#####   Fold={fold}, Leads: {len(leads)}")
+        logger.info("########################################################")
+        binary_outputs_local, scalar_outputs_local = load_classifier_outputs(binary_outputs, scalar_outputs, c, classes_eval)
+        auroc, auprc, auroc_classes, auprc_classes = compute_auc(labels, scalar_outputs)
+        logger.info('--- AUROC, AUPRC: ', auroc, auprc)
+        logger.info('--- AVG peak classification time: ', np.mean(times))
+        accuracy = compute_accuracy(labels, binary_outputs_local)
+        logger.info('--- Accuracy: ', accuracy)
+        f_measure, f_measure_classes = compute_f_measure(labels, binary_outputs_local)
+        logger.info('--- F-measure: ', f_measure)
+        challenge_metric = compute_challenge_metric(weights_eval, labels, binary_outputs_local, classes_eval, sinus_rhythm = set(['426783006'])
+        logger.info('--- Challenge metric: ', challenge_metric)
+        logger.info("########################################################")
+
+        return ResultHandler(c, binary_outputs, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric)
+
 
