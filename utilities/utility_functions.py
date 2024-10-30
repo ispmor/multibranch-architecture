@@ -5,6 +5,7 @@ from challenge import *
 from utilities.results_handling import ResultHandler
 from .pan_tompkins_detector import *
 from torch.utils import data as torch_data
+from torch.nn.functional import sigmoid
 from .config import *
 from .results_handling import *
 import numpy as np
@@ -415,7 +416,7 @@ class UtilityFunctions:
                 end = time.time()
                 peak_time = (end - start) / len(peaks)
                 del rr_x, rr_wavelets, rr_features, x, pca_features, pre_pca
-                probabilities = nn.functional.sigmoid(scores)
+                probabilities = sigmoid(scores)
                 probabilities_mean = torch.mean(probabilities, 0).detach().cpu().numpy()
                 labels = probabilities_mean > 0.5
     
