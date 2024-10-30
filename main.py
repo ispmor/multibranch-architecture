@@ -41,15 +41,6 @@ def main():
     for leads in utilityFunctions.leads_set:
         logger.info(f"Preparing database for {leads} leads.")
         leads_idx = [utilityFunctions.twelve_leads.index(i) for i in leads]
-        blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes, leads=leads)
-        training_config = TrainingConfig(batch_size=1500,
-                                     n_epochs_stop=6,
-                                     num_epochs=25,
-                                     lr_rate=0.01,
-                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
-                                     optimizer=torch.optim.Adam(blendModel.parameters(), lr=0.01),
-                                     device=device
-                                     )
 
         for fold, (data_training_full, data_test) in enumerate(fold_splits):
             logger.info(f"Beginning {fold} fold processing")
@@ -67,6 +58,15 @@ def main():
                                              data_cache_size=4, transform=None, leads=leads_idx)
             logger.info("Loaded validation dataset")
 
+            blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes, leads=leads)
+            training_config = TrainingConfig(batch_size=1500,
+                                     n_epochs_stop=6,
+                                     num_epochs=25,
+                                     lr_rate=0.01,
+                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
+                                     optimizer=torch.optim.Adam(blendModel.parameters(), lr=0.01),
+                                     device=device
+                                     )
 
             training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
             validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
