@@ -4,7 +4,7 @@
 
 import numpy as np, os, sys
 #from team_code import load_model, run_model
-from helper_code import *
+from .helper_code import *
 
 classes_glob = []
 
