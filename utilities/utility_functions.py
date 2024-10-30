@@ -6,7 +6,7 @@ from utilities.results_handling import ResultHandler
 from .pan_tompkins_detector import *
 from torch.utils import data as torch_data
 from .config import *
-from .results_handler import *
+from .results_handling import *
 import numpy as np
 import logging
 import torch
