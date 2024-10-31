@@ -449,7 +449,7 @@ class UtilityFunctions:
     
 
 
-    def test_network(self, model, weights_file, data_test, header_files, recording_files, fold, num_classes=27  )-> ResultHandler:
+    def test_network(self, model, weights_file, data_test, header_files, recording_files, fold, leads, num_classes=27  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
         scalar_outputs = np.ndarray((len(data_test), num_classes))
         binary_outputs = [[] for i in range(len(data_test))]
