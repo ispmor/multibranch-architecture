@@ -1,6 +1,6 @@
 import numpy as np
 import json
-
+import os
 import logging
 
 
@@ -23,6 +23,7 @@ class ResultHandler:
     def save_json(self, filename):
         logger.debug(self.__dict__)
         as_json=json.dumps(self.__dict__, indent=2)
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "w") as outfile:
             outfile.write(as_json)
 
