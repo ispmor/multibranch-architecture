@@ -79,6 +79,7 @@ def main():
 
             results = utilityFunctions.test_network(trained_model,"weights_eval27.csv", data_test, header_files, recording_files, fold, leads)
 
+            logger.info("Saving results to json file")
             results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
 
 
