@@ -1,6 +1,10 @@
 import numpy as np
 import json
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 class ResultHandler:
     def __init__(self, c=None, binary_outputs=None, scalar_outputs=None, times=None, auroc=None, auprc=None, auroc_classes=None, auprc_classes=None, f_measure=None, f_measure_classes=None, challenge_metric=None) -> None:
