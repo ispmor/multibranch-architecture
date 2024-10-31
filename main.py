@@ -6,7 +6,6 @@ from networks.model import *
 from challenge import find_challenge_files
 from utilities.cleaner import clean_datasets_directory
 from utilities.utility_functions import UtilityFunctions
-import datetime
 from sklearn.model_selection import KFold
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,7 @@ def main():
 
     if clean_datasets_var:
         clean_datasets_directory()
-    logging.basicConfig(filename=f'logs/{datetime.datetime.now()}.log', level=logging.DEBUG)
+    logging.basicConfig(filename=f'logs/{datetime.now()}.log', level=logging.DEBUG)
     utilityFunctions = UtilityFunctions(device)
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
