@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 data_directory="../data/physionet.org/files/challenge-2021/1.0.3/training/georgia/g1mini"
-clean_datasets_var=False
+clean_datasets_var=True
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
