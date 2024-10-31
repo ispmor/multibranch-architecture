@@ -209,7 +209,7 @@ class UtilityFunctions:
                 prev_distance = peak - peaks[i-1]
     
             if i == peaks_len-1:
-                logger.debug("skipping, as i({i})==peaks_len-1({peaks_len-1})")
+                logger.debug(f"skipping, as i({i})==peaks_len-1({peaks_len-1})")
                 continue
             else:
                 next_distance = peaks[i+1] - peak
@@ -230,7 +230,7 @@ class UtilityFunctions:
                 a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], 'db2', level=4)
                 wavelet_features = np.hstack((a4, d4, d3, d2, d1))
             else:
-                logger.debug("Skipping append as peak = {peak}")
+                logger.debug(f"Skipping append as peak = {peak}")
                 continue
             x.append(signal)
             rr_features.append([[prev_distance, next_distance, avg] for i in range(len(recording))])
