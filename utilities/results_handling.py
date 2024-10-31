@@ -17,6 +17,7 @@ class ResultHandler:
         self.challenge_metric=challenge_metric
 
     def save_json(self, filename):
+        logger.debug(self.__dict__)
         as_json=json.dumps(self.__dict__, indent=2)
         with open(filename, "w") as outfile:
             outfile.write(as_json)
