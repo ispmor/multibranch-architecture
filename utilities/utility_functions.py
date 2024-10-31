@@ -449,11 +449,11 @@ class UtilityFunctions:
     
 
 
-    def test_network(self, model, weights_file, data_test, header_files, recording_files, fold  )-> ResultHandler:
+    def test_network(self, model, weights_file, data_test, header_files, recording_files, fold, num_classes=27  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
-        scalar_outputs = np.ndarray((len(data_test), 26))
+        scalar_outputs = np.ndarray((len(data_test), num_classes))
         binary_outputs = [[] for i in range(len(data_test))]
-        c = np.ndarray((len(data_test), 26))
+        c = np.ndarray((len(data_test), num_classes))
         times = np.zeros(len(data_test))
         tmp_header_files = [header_files[i] for i in data_test]
         labels = load_labels(tmp_header_files, classes_eval)
