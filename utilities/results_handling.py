@@ -14,7 +14,7 @@ class ResultHandler:
         self.auprc_classes=auprc_classes.tolist()
         self.f_measure=f_measure
         self.f_measure_classes=f_measure_classes.tolist()
-        self.challenge_metric=challenge_metric.tolist()
+        self.challenge_metric=challenge_metric
 
     def save_json(self, filename):
         as_json=json.dumps(self.__dict__, indent=2)
