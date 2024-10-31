@@ -46,7 +46,7 @@ def main():
             logger.info(f"Beginning {fold} fold processing")
             utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index)
 
-            weights = utilityFunctions.load_training_weights(fold=k_folds)
+            weights = utilityFunctions.load_training_weights_for_fold(fold)
 
             logger.info(f"Training FOLD: {k_folds}")
             training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads, fold), recursive=False,

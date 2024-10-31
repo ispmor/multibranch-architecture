@@ -423,6 +423,17 @@ class UtilityFunctions:
                 return classes, labels, probabilities_mean, peak_time
     
 
+    def load_training_weights_for_fold(self, fold):
+        data = []
+        logger.debug(f"Loading {self.training_with_validation_weights_filename.format(fold)}")
+        with open(self.training_with_validation_weights_filename.format(fold), 'r') as f:
+            reader = csv.reader(f)
+            data.append(list(reader))
+        average=np.mean(data, axis=0, dtype=float).flatten()
+        result=torch.from_numpy(average).to(self.device)
+        logger.debug(f"Loaded list of weights: {result}")
+        return result
+
     def load_training_weights(self, fold):
         data = []
         for i in range(fold-1):
