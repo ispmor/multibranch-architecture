@@ -78,7 +78,7 @@ def main():
 
             trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads, device)
 
-            results = utilityFunctions.test_network(trained_model,"weights_eval.csv", data_test, header_files, recording_files, fold, leads)
+            results = utilityFunctions.test_network(trained_model,"weights_eval27.csv", data_test, header_files, recording_files, fold, leads)
 
             results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
 
