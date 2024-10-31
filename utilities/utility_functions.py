@@ -457,6 +457,8 @@ class UtilityFunctions:
         times = np.zeros(len(data_test))
         tmp_header_files = [header_files[i] for i in data_test]
         labels = load_labels(tmp_header_files, classes_eval)
+        logger.debug(f"Labels len: {len(labels)}")
+        logger.debug(f"Scalar outputs length: {len(scalar_outputs)}")
         for i, header_index in enumerate(data_test):
             header = load_header(header_files[header_index])
             leads_local = get_leads(header)
