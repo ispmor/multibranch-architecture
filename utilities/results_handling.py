@@ -10,11 +10,11 @@ class ResultHandler:
         self.times=times.tolist()
         self.auroc=auroc
         self.auprc=auprc
-        self.auroc_classes=auroc_classes
-        self.auprc_classes=auprc_classes
+        self.auroc_classes=auroc_classes.tolist()
+        self.auprc_classes=auprc_classes.tolist()
         self.f_measure=f_measure
-        self.f_measure_classes=f_measure_classes
-        self.challenge_metric=challenge_metric
+        self.f_measure_classes=f_measure_classes.tolist()
+        self.challenge_metric=challenge_metric.tolist()
 
     def save_json(self, filename):
         as_json=json.dumps(self.__dict__, indent=2)
