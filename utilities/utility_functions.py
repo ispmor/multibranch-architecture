@@ -243,6 +243,7 @@ class UtilityFunctions:
         return rr_features, x, coeffs
 
 
+    @staticmethod
     def clean_labels(self, header):
         logger.debug(f"Clean label for header file: {header}")
         classes_from_header = get_labels(header)
