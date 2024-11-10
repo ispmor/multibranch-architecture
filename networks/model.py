@@ -275,7 +275,7 @@ class LSTM_ECG(nn.Module):
             self.lstm_alpha2 = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
                                        num_layers=num_layers, batch_first=True, bidirectional=False)
 
-            self.fc_1 = nn.Linear(hidden_size * 541, 128)  # hidden_size, 128)  # fully connected 1
+            self.fc_1 = nn.Linear(hidden_size * 555, 128)  # hidden_size, 128)  # fully connected 1
             self.fc = nn.Linear(128, num_classes)  # fully connected last layer
         else:
             self.linea_multiplier = input_size
