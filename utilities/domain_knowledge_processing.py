@@ -324,7 +324,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
         s_duration = np.mean(get_S_duration(signal, info))
         rhythm = leading_rythm(bpm)
         # rsr = has_rsR_complex(rec[idx], sampling_rate)
-        nothed = analyse_notched_signal(rec[idx])
+        notched = analyse_notched_signal(rec[idx])
 
         analysed_results[lead_name]={
             'signal': signal,
@@ -336,7 +336,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
             's_duration':s_duration,
             'rhythm': rhythm,
             # 'has_rsr': rsr,
-            'notched': nothed,
+            'notched': notched,
         }
 
     heart_axis = None
@@ -371,6 +371,6 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
 def analysis_dict_to_array(analysis_dict, leads_idxs=leads_idx):
     result = []
     for lead_name, idx in leads_idxs.items():
-       result.append([analysis_dict[lead_name]['bpm'], analysis_dict[lead_name]['missing_qrs'],analysis_dict[lead_name]['missing_p'],analysis_dict[lead_name]['qrs_duration'], analysis_dict[lead_name]['s_duration'],analysis_dict[lead_name]['rhythm'],analysis_dict[lead_name]['nothed'],analysis_dict['heart_axis'],analysis_dict['rhythm_origin_vertical'], analysis_dict['rhythm_origin_horizontal']])
+       result.append([analysis_dict[lead_name]['bpm'], analysis_dict[lead_name]['missing_qrs'],analysis_dict[lead_name]['missing_p'],analysis_dict[lead_name]['qrs_duration'], analysis_dict[lead_name]['s_duration'],analysis_dict[lead_name]['rhythm'],analysis_dict[lead_name]['notched'],analysis_dict['heart_axis'],analysis_dict['rhythm_origin_vertical'], analysis_dict['rhythm_origin_horizontal']])
 
     return np.array(result, dtype=np.float64)
