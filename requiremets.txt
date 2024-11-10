@@ -21,6 +21,8 @@ cycler==0.12.1
 debugpy==1.8.7
 decorator==5.1.1
 defusedxml==0.7.1
+ecg-plot==0.2.8
+et_xmlfile==2.0.0
 executing==2.1.0
 fastjsonschema==2.20.0
 filelock==3.16.1
@@ -66,9 +68,11 @@ nbconvert==7.16.4
 nbformat==5.10.4
 nest-asyncio==1.6.0
 networkx==3.4.1
+neurokit2==0.2.10
 notebook==7.2.2
 notebook_shim==0.2.4
 numpy==1.26.4
+openpyxl==3.1.5
 overrides==7.7.0
 packaging==24.1
 pandas==2.2.3
