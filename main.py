@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 data_directory="../data/total"
-clean_datasets_var=False
+clean_datasets_var=True
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -22,7 +22,7 @@ def main():
 
     if clean_datasets_var:
         clean_datasets_directory()
-    logging.basicConfig(filename=f'logs/{datetime.now()}.log', level=logging.DEBUG)
+    logging.basicConfig(filename=f'logs/{datetime.now()}.log', level=logging.INFO)
     utilityFunctions = UtilityFunctions(device)
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
@@ -81,12 +81,6 @@ def main():
 
             logger.info("Saving results to json file")
             results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
-
-
-
-
-
-
 
 
 
