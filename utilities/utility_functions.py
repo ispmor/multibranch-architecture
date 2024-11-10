@@ -30,6 +30,8 @@ def save_headers_recordings_to_json(filename, headers, recordings, idxs):
 
 
 
+
+
 class UtilityFunctions:
     all_classes = ['6374002', '10370003', '17338001', '39732003', '47665007', '59118001', '59931005',
                                 '111975006', '164889003', '164890007', '164909002', '164917005', '164934002',
@@ -211,7 +213,7 @@ class UtilityFunctions:
     def one_file_training_data(self, recording, single_peak_length, peaks):
         logger.debug("Entering one_file_training_data")
         x = []
-        rr_features = np.zeros((12, 10), dtype=np.float64)
+        rr_features = np.zeros((1, 12, 10), dtype=np.float64)
         coeffs = []
         for i, peak in enumerate(peaks):
             if peak < 125:
@@ -229,9 +231,9 @@ class UtilityFunctions:
 
         try:
             domain_knowledge_analysis = analyse_recording(recording)
-            rr_features = analysis_dict_to_array(domain_knowledge_analysis)
-        except:
-            logger.warn("Failed to extract domain knowledge... returning zeros")
+            rr_features = np.array([analysis_dict_to_array(domain_knowledge_analysis)])
+        except e:
+            logger.warn(e)
     
         x = np.array(x, dtype=np.float64)
         coeffs = np.asarray(coeffs,  dtype=np.float64)
@@ -393,7 +395,7 @@ class UtilityFunctions:
         peaks = pan_tompkins_detector(500, x_features[0])
     
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, self.window_size, peaks)
-        logger.debug(rr_features)
+        logger.debug(rr_features, rr_features.shape)
         x_features = torch.Tensor(x_features)
         rr_features = torch.Tensor(rr_features)
         wavelet_features = torch.Tensor(wavelet_features)
