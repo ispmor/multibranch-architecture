@@ -13,10 +13,21 @@ import logging
 import torch
 import csv
 import time
+from .domain_knowledge_processing import analyse_recording, analysis_dict_to_array
 
 
 
 logger = logging.getLogger(__name__)
+
+
+def save_headers_recordings_to_json(filename, headers, recordings, idxs):
+    with open(filename) as f:
+        data = {
+                "header_files": list(np.array(headers)[idxs]),
+                "recording_files":list(np.array(recordings)[idxs]),
+                }
+        json.dump(data, f)
+
 
 
 class UtilityFunctions:
@@ -121,6 +132,7 @@ class UtilityFunctions:
 
             weights = self.calculate_pos_weights(sorted_classes_numbers.values())
             np.savetxt(training_weights_filename, np.asarray(weights), delimiter=',')
+            save_headers_recordings_to_json(f"header_recording_files_{training_filename}.json", header_files, recording_files, data_training) 
 
 
         if not os.path.isfile(validation_filename):  # {len(leads)}_validation.h5'):
@@ -128,6 +140,7 @@ class UtilityFunctions:
             local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename)
             self.add_classes_counts(local_validation_counts)
+            save_headers_recordings_to_json(f"header_recording_files_{validation_filename}.json", header_files, recording_files, data_validation) 
 
         if not os.path.isfile(test_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{test_filename} not found, creating database")
@@ -135,6 +148,7 @@ class UtilityFunctions:
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename)
             
             self.add_classes_counts(local_test_counts)
+            save_headers_recordings_to_json(f"header_recording_files_{test_filename}.json", header_files, recording_files, single_fold_data_test) 
 
         if weights is None and os.path.isfile(training_filename):
             logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
@@ -197,50 +211,35 @@ class UtilityFunctions:
     def one_file_training_data(self, recording, single_peak_length, peaks):
         logger.debug("Entering one_file_training_data")
         x = []
-        peaks_len = len(peaks)
-        prev_distance = 0
-        next_distance = 0
-        rr_features = []
+        rr_features = np.zeros((12, 10), dtype=np.float64)
         coeffs = []
         for i, peak in enumerate(peaks):
-            if i == 0:
-                prev_distance = peak
-            else:
-                prev_distance = peak - peaks[i-1]
-    
-            if i == peaks_len-1:
-                logger.debug(f"skipping, as i({i})==peaks_len-1({peaks_len-1})")
-                continue
-            else:
-                next_distance = peaks[i+1] - peak
-    
-            if i < 5 and i < peaks_len - 5:
-                avg = (sum(peaks[0:i]) + sum(peaks[i:i+5])) / float(i+5)
-            elif 5 < i < peaks_len - 5:
-                avg = sum(peaks[i-5: i+5]) / 10.0
-            else:
-                avg = (sum(peaks[i-5:i]) + sum(peaks[i:peaks_len-1])) / float(i+5)
-    
             if peak < 125:
-                signal = recording[:, 0: single_peak_length]
-                a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], 'db2', level=4)
-                wavelet_features = np.hstack((a4, d4, d3, d2, d1))
+                wavelet_features = self.get_wavelet_features(recording[:, 0: single_peak_length], 'db2')
             elif peak + 225 < len(recording[0]):
-                signal = recording[:, peak - 125:peak + 225]
-                a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], 'db2', level=4)
-                wavelet_features = np.hstack((a4, d4, d3, d2, d1))
+                wavelet_features = self.get_wavelet_features(recording[:, peak - 125:peak + 225], 'db2')
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
+            
             x.append(signal)
-            rr_features.append([[prev_distance, next_distance, avg] for i in range(len(recording))])
             coeffs.append(wavelet_features)
+
+        try:
+            domain_knowledge_analysis = analyse_recording(recording)
+            rr_features = analysis_dict_to_array(domain_knowledge_analysis)
+        except:
+            logger.warn("Failed to extract domain knowledge... returning zeros")
     
         x = np.array(x, dtype=np.float64)
-        rr_features = np.array(rr_features, dtype=np.float64)
         coeffs = np.asarray(coeffs,  dtype=np.float64)
     
         return rr_features, x, coeffs
+
+
+    def get_wavelet_features(self, signal, wavelet):
+        a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], wavelet, level=4)
+        return np.hstack((a4, d4, d3, d2, d1))
 
 
     @staticmethod
@@ -277,6 +276,10 @@ class UtilityFunctions:
             group = 'validation'
         else:
             group = 'validation2'
+   
+
+        headers_included_in_db= []
+        recordings_included_in_db= []
     
         if not filename:
             filename = f'cinc_database_{group}.h5'
@@ -290,13 +293,14 @@ class UtilityFunctions:
                                       chunks=(1, len(leads), self.window_size))
             lset = grp.create_dataset("label", (1, num_classes), maxshape=(None, num_classes), dtype='f',
                                       chunks=(1, num_classes))
-            rrset = grp.create_dataset("rr_features", (1, len(leads), 3), maxshape=(None, len(leads), 3), dtype='f',
-                                       chunks=(1, len(leads), 3))
+            rrset = grp.create_dataset("rr_features", (1, len(leads), 10), maxshape=(None, len(leads), 10), dtype='f',
+                                       chunks=(1, len(leads), 10))
             waveset = grp.create_dataset("wavelet_features", (1, len(leads), 185), maxshape=(None, len(leads), 185),
                                          dtype='f',
                                          chunks=(1, len(leads), 185))
     
             counter = 0
+
             for i in num_recordings:
                 logger.debug(f"Iterating over {i} out of {num_recordings} files")
                 counter += 1
