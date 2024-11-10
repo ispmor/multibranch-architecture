@@ -114,13 +114,13 @@ class UtilityFunctions:
 
 
         #TODO why do I create this dataset?
-        if not os.path.isfile(training_full_filename):  # _{len(leads)}_training.h5'):
-            logger.info(f"{training_full_filename} not found, creating database")
-            self.create_hdf5_db(single_fold_data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
-                               classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_full_filename)
-            sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
-            weights = self.calculate_pos_weights(sorted_classes_numbers.values())
-            np.savetxt(training_with_validation_weights_filename, np.asarray(weights), delimiter=',')
+        #if not os.path.isfile(training_full_filename):  # _{len(leads)}_training.h5'):
+        #    logger.info(f"{training_full_filename} not found, creating database")
+        #    self.create_hdf5_db(single_fold_data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+        #                       classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_full_filename)
+        #    sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
+        #    weights = self.calculate_pos_weights(sorted_classes_numbers.values())
+        #    np.savetxt(training_with_validation_weights_filename, np.asarray(weights), delimiter=',')
 
 
         if not os.path.isfile(training_filename):  # _{len(leads)}_training.h5'):
@@ -430,8 +430,8 @@ class UtilityFunctions:
 
     def load_training_weights_for_fold(self, fold):
         data = []
-        logger.debug(f"Loading {self.training_with_validation_weights_filename.format(fold)}")
-        with open(self.training_with_validation_weights_filename.format(fold), 'r') as f:
+        logger.debug(f"Loading {self.training_weights_filename.format(fold)}")
+        with open(self.training_weights_filename.format(fold), 'r') as f:
             reader = csv.reader(f)
             data.append(list(reader))
         average=np.mean(data, axis=0, dtype=float).flatten()
