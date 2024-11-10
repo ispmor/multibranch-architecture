@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def save_headers_recordings_to_json(filename, headers, recordings, idxs):
-    with open(filename) as f:
+    with open(filename, 'w') as f:
         data = {
                 "header_files": list(np.array(headers)[idxs]),
                 "recording_files":list(np.array(recordings)[idxs]),
