@@ -287,7 +287,7 @@ class LSTM_ECG(nn.Module):
             self.lstm_alpha1 = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size,
                                        num_layers=self.num_layers, batch_first=True, bidirectional=False)
             self.fc = nn.Linear(
-                (input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier) * self.hidden_size, num_classes)
+                (input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier) * self.hidden_size, num_classes)
 
         self.relu = nn.ReLU()
 
