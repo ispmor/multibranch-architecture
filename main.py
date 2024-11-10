@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 data_directory="../data/total"
-clean_datasets_var=True
+clean_datasets_var=False
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

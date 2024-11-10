@@ -393,6 +393,7 @@ class UtilityFunctions:
         peaks = pan_tompkins_detector(500, x_features[0])
     
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, self.window_size, peaks)
+        logger.debug(rr_features)
         x_features = torch.Tensor(x_features)
         rr_features = torch.Tensor(rr_features)
         wavelet_features = torch.Tensor(wavelet_features)

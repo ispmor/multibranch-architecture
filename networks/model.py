@@ -183,7 +183,7 @@ class Nbeats_alpha(nn.Module):
                                        classes=self.classes,
                                        hidden_layer_units=hidden_size)
 
-        self.fc_1 = nn.Linear(self.input_size * 541, 128)  # hidden_size, 128)  # fully connected 1
+        self.fc_1 = nn.Linear(self.input_size * 555, 128)  # hidden_size, 128)  # fully connected 1
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
 
     def forward(self, rr_x, rr_wavelets):
@@ -233,7 +233,7 @@ class Nbeats_beta(nn.Module):
                                      classes=self.classes,
                                      hidden_layer_units=self.hidden_size)
 
-        self.fc = nn.Linear(input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier,
+        self.fc = nn.Linear(input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
 
     def forward(self, pca_features):
@@ -363,7 +363,7 @@ class GRU_ECG_ALPHA(nn.Module):
         self.gru_alpha2 = nn.GRU(input_size=input_size, hidden_size=hidden_size,
                                  num_layers=num_layers, batch_first=True, bidirectional=False)
 
-        self.fc_1 = nn.Linear(hidden_size * 541, 128)  # hidden_size, 128)  # fully connected 1
+        self.fc_1 = nn.Linear(hidden_size * 555, 128)  # hidden_size, 128)  # fully connected 1
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
         self.relu = nn.ReLU()
 
@@ -418,7 +418,7 @@ class GRU_ECG_BETA(nn.Module):
                                num_layers=self.num_layers, batch_first=True, bidirectional=False)
         # self.fc_1 = nn.Linear(hidden_size, 1)
         self.fc = nn.Linear(
-            (input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier) * hidden_size,
+            (input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier) * hidden_size,
             num_classes)
         self.relu = nn.ReLU()
 
