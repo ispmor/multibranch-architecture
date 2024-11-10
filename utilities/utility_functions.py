@@ -216,7 +216,7 @@ class UtilityFunctions:
         for i, peak in enumerate(peaks):
             if peak < 125:
                 signal = recording[:, 0: single_peak_length]
-                wavelet_features = self.get_wavelet_features(signal, 0: single_peak_length], 'db2')
+                wavelet_features = self.get_wavelet_features(signal,, 'db2')
             elif peak + 225 < len(recording[0]):
                 signal = recording[:, 0: single_peak_length]
                 wavelet_features = self.get_wavelet_features(signal, 'db2')
