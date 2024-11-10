@@ -215,9 +215,11 @@ class UtilityFunctions:
         coeffs = []
         for i, peak in enumerate(peaks):
             if peak < 125:
-                wavelet_features = self.get_wavelet_features(recording[:, 0: single_peak_length], 'db2')
+                signal = recording[:, 0: single_peak_length]
+                wavelet_features = self.get_wavelet_features(signal, 0: single_peak_length], 'db2')
             elif peak + 225 < len(recording[0]):
-                wavelet_features = self.get_wavelet_features(recording[:, peak - 125:peak + 225], 'db2')
+                signal = recording[:, 0: single_peak_length]
+                wavelet_features = self.get_wavelet_features(signal, 'db2')
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
