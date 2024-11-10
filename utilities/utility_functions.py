@@ -232,7 +232,7 @@ class UtilityFunctions:
         try:
             domain_knowledge_analysis = analyse_recording(recording)
             rr_features = np.array([analysis_dict_to_array(domain_knowledge_analysis)])
-        except e:
+        except Exception as e:
             logger.warn(e)
     
         x = np.array(x, dtype=np.float64)
