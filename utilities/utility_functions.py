@@ -132,7 +132,7 @@ class UtilityFunctions:
 
             weights = self.calculate_pos_weights(sorted_classes_numbers.values())
             np.savetxt(training_weights_filename, np.asarray(weights), delimiter=',')
-            save_headers_recordings_to_json(f"header_recording_files_{training_filename}.json", header_files, recording_files, data_training) 
+            save_headers_recordings_to_json(f"{training_filename}_header_recording_files.json", header_files, recording_files, data_training) 
 
 
         if not os.path.isfile(validation_filename):  # {len(leads)}_validation.h5'):
@@ -140,7 +140,7 @@ class UtilityFunctions:
             local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename)
             self.add_classes_counts(local_validation_counts)
-            save_headers_recordings_to_json(f"header_recording_files_{validation_filename}.json", header_files, recording_files, data_validation) 
+            save_headers_recordings_to_json(f"{validation_filename}_header_recording_files.json", header_files, recording_files, data_validation) 
 
         if not os.path.isfile(test_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{test_filename} not found, creating database")
@@ -148,7 +148,7 @@ class UtilityFunctions:
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename)
             
             self.add_classes_counts(local_test_counts)
-            save_headers_recordings_to_json(f"header_recording_files_{test_filename}.json", header_files, recording_files, single_fold_data_test) 
+            save_headers_recordings_to_json(f"{test_filename}_header_recording_files.json", header_files, recording_files, single_fold_data_test) 
 
         if weights is None and os.path.isfile(training_filename):
             logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
