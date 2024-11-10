@@ -243,7 +243,7 @@ class UtilityFunctions:
 
 
     @staticmethod
-    def clean_labels(self, header):
+    def clean_labels(header):
         logger.debug(f"Clean label for header file: {header}")
         classes_from_header = get_labels(header)
         
