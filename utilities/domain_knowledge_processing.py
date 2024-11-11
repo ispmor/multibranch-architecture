@@ -314,7 +314,7 @@ def has_rsR_complex(recording, threshold=20):
 
 
 def cleanse_data_mean(array):
-    if array.size > 0 and !(array is None):
+    if array.size > 0 and array is not None:
         result = np.nan_to_num(array, posinf=99999, neginf=-99999)
         return  np.mean(result)
     else:
