@@ -314,7 +314,7 @@ def has_rsR_complex(recording, threshold=20):
 
 
 def cleanse_data_mean(array):
-    if array.size > 0 and array:
+    if array.size > 0 and !(array is None):
         result = np.nan_to_num(array, posinf=99999, neginf=-99999)
         return  np.mean(result)
     else:
@@ -323,9 +323,12 @@ def cleanse_data_mean(array):
 
 
 def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
+    logger.debug("Entering analysed_results")
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():
         rec_clean = nk.ecg_clean(rec[idx], sampling_rate=sampling_rate)
+        logger.debug("After rec_clean")
+
         signal, info =nk.ecg_process(rec_clean, sampling_rate=sampling_rate)
         
         bpm = cleanse_data_mean(nk.ecg_rate(signal, sampling_rate))
