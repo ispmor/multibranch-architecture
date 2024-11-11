@@ -1,8 +1,10 @@
 import pywt
 import neurokit2 as nk
 import numpy as np
+import logging
 import math
 
+logger = logging.getLogger(__name__)
 
 leads_idx = {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':7, 'V3':8, 'V4':9, 'V5':10, 'V6':11}
 
@@ -327,6 +329,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
         signal, info =nk.ecg_process(rec_clean, sampling_rate=sampling_rate)
         
         bpm = cleanse_data_mean(nk.ecg_rate(signal, sampling_rate))
+
         missing_qrs = has_missing_qrs(signal, info)
         missing_p = has_missing_p(signal, info)
         qrs_duration = cleanse_data_mean(get_QRS_duration(signal, info))
@@ -379,6 +382,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
 
 def analysis_dict_to_array(analysis_dict, leads_idxs=leads_idx):
     result = []
+    logger.debug(analysis_dict)
     for lead_name, idx in leads_idxs.items():
        result.append([analysis_dict[lead_name]['bpm'], analysis_dict[lead_name]['missing_qrs'],analysis_dict[lead_name]['missing_p'],analysis_dict[lead_name]['qrs_duration'], analysis_dict[lead_name]['s_duration'],analysis_dict[lead_name]['rhythm'],analysis_dict[lead_name]['notched'],analysis_dict['heart_axis'],analysis_dict['rhythm_origin_vertical'], analysis_dict['rhythm_origin_horizontal']])
 
