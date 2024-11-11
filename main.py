@@ -45,7 +45,7 @@ def main():
                       format='%(asctime)s %(levelname)-8s %(message)s',
                       datefmt='%Y-%m-%d %H:%M:%S')
 
-   utilityFunctions = UtilityFunctions(device)
+    utilityFunctions = UtilityFunctions(device)
     
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
