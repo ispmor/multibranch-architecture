@@ -333,7 +333,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
     logger.debug("Entering analysed_results")
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():
-        signal, info =nk.ecg_process(rec[idx], sampling_rate=sampling_rate, method='biosppy')
+        signal, info =nk.ecg_process(rec[idx], sampling_rate=sampling_rate)
         bpm = -1
         if 'ECG_Rate' in signal:
             bpm = cleanse_data_mean(signal['ECG_Rate'])
