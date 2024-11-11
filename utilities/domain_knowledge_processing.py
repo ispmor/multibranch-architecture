@@ -398,6 +398,6 @@ def analysis_dict_to_array(analysis_dict, leads_idxs=leads_idx):
                 tmp_result.append(analysis_dict[lead_name][key])
             else:
                 tmp_result.append(0)
-       result.append(tmp_result)
+        result.append(tmp_result)
 
     return np.array(result, dtype=np.float64)
