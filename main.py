@@ -33,7 +33,7 @@ def main():
 
     if clean_datasets_var:
         clean_datasets_directory()
-    logging.basicConfig(filename=f'logs/{datetime.now()}.log', level=logging.INFO)
+    logging.basicConfig(filename=f'logs/{datetime.now()}.log', level=logging.DEBUG)
     utilityFunctions = UtilityFunctions(device)
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
@@ -87,6 +87,7 @@ def main():
             logger.info(f"Best trained model filename: {trained_model_name}")
 
             trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads, device)
+            logger.info(f"Loaded model: {trained_model}")
 
             results = utilityFunctions.test_network(trained_model,"weights_eval27.csv", data_test, header_files, recording_files, fold, leads)
 

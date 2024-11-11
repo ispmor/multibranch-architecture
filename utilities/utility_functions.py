@@ -489,6 +489,7 @@ class UtilityFunctions:
         times = np.zeros(len(data_test))
         tmp_header_files = [header_files[i] for i in data_test]
         labels = load_labels(tmp_header_files, classes_eval)
+        logger.debug(f"labels: {labels}")
         logger.debug(f"Labels shape: {labels.shape}")
         logger.debug(f"Scalar outputs shape: {labels.shape}")
         for i, header_index in enumerate(data_test):
@@ -512,6 +513,6 @@ class UtilityFunctions:
         logger.info("########################################################")
 
         binary_outputs_list = [x.tolist() for x in binary_outputs]
-        return ResultHandler(c, binary_outputs_list, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric)
+        return ResultHandler(c,labels, binary_outputs_list, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric)
 
 

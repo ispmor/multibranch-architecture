@@ -112,12 +112,16 @@ def get_QRS_from_lead(signals, info):
 #Check if there are missing QRS complexes, if so we diagnose atrioventricular block
 def has_missing_qrs(signals, info):
     R_peaks = info['ECG_R_Peaks']
-    distances = [R_peaks[i] - R_peaks[i-1] for i in range(1, len(R_peaks))]
+    distances = np.diff(R_peaks)
     quantile90=np.quantile(distances,0.9)
     quantile10=np.quantile(distances,0.1)
-    mean_without_outliers = np.mean([d for d in distances if (d>quantile10 and d<quantile90)])
-    is_missing_qrs = distances > (mean_without_outliers * 1.5)
-    return any(is_missing_qrs)
+    outliers_removed=[d for d in distances if (d>quantile10 and d<quantile90)]
+    if len(outliers_removed) > 0:
+        mean_without_outliers = np.mean(outliers_removed)
+        is_missing_qrs = distances > (mean_without_outliers * 1.5)
+        return any(is_missing_qrs)
+    else:
+        return -1
 
 
 def has_missing_p(signals, info):
@@ -201,8 +205,7 @@ def get_0_crossings(biorcD, beg_qrs, end_qrs, threshold=15, show=False, **kwargs
     return crossing_0
 
 
-def get_qrs_beginning_and_end(recording, smoothwindow=0.1, avgwindow=0.75, gradthreshweight=1.5, minlenweight=0.4, mindelay=0.3, sampling_rate=500, **kwargs):
-    ecg_clean = nk.ecg_clean(recording, sampling_rate=sampling_rate, method='biosppy')
+def get_qrs_beginning_and_end(ecg_clean, smoothwindow=0.1, avgwindow=0.75, gradthreshweight=1.5, minlenweight=0.4, mindelay=0.3, sampling_rate=500, **kwargs):
     signal_gradient = np.gradient(ecg_clean)
     absgrad = np.abs(signal_gradient)
     smooth_kernel = int(np.rint(smoothwindow * sampling_rate))
@@ -239,14 +242,18 @@ def get_qrs_beginning_and_end(recording, smoothwindow=0.1, avgwindow=0.75, gradt
 
 
 
-def analyse_notched_signal(recording, **kwargs):
-    beg_qrs, end_qrs = get_qrs_beginning_and_end(recording, **kwargs)
+def analyse_notched_signal(signal, recording, threshold=1.5, **kwargs):
+    beg_qrs, end_qrs = get_qrs_beginning_and_end(signal['ECG_Raw'], **kwargs)
     (cA, cD) = pywt.dwt(recording, 'bior1.1')
-    avg_0_crossing = np.mean(get_0_crossings(cD, beg_qrs, end_qrs, **kwargs))
-    if avg_0_crossing > 1.5:
-        return 1
+    crossing_0 = get_0_crossings(cD, beg_qrs, end_qrs, **kwargs)
+    if len(crossing_0) > 0:
+        avg_0_crossing = np.mean(crossing_0)
+        if avg_0_crossing > threshold:
+            return 1
+        else:
+            return 0
     else:
-        return 0
+        return -1
 
 
 
@@ -326,18 +333,17 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
     logger.debug("Entering analysed_results")
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():
-        rec_clean = nk.ecg_clean(rec[idx], sampling_rate=sampling_rate)
-
-        signal, info =nk.ecg_process(rec_clean, sampling_rate=sampling_rate)
-        
-        bpm = cleanse_data_mean(nk.ecg_rate(signal, sampling_rate))
+        signal, info =nk.ecg_process(rec[idx], sampling_rate=sampling_rate, method='biosppy')
+        bpm = -1
+        if 'ECG_Rate' in signal:
+            bpm = cleanse_data_mean(signal['ECG_Rate'])
         missing_qrs = has_missing_qrs(signal, info)
         missing_p = has_missing_p(signal, info)
         qrs_duration = cleanse_data_mean(get_QRS_duration(signal, info))
         s_duration = cleanse_data_mean(get_S_duration(signal, info))
         rhythm = leading_rythm(bpm)
         # rsr = has_rsR_complex(rec[idx], sampling_rate)
-        notched = analyse_notched_signal(rec[idx])
+        notched = analyse_notched_signal(signal,rec[idx])
 
         analysed_results[lead_name]={
             'signal': signal,
@@ -384,7 +390,14 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
 def analysis_dict_to_array(analysis_dict, leads_idxs=leads_idx):
     result = []
     logger.debug(analysis_dict)
+    signals_to_extract = ['bpm', 'missing_qrs', 'missing_p', 'qrs_duration', 's_duration', 'rhythm', 'rhythm_origin', 'notched', 'heart_axis', 'rhythm_origin_vertical', 'rhythm_origin_horizontal']
     for lead_name, idx in leads_idxs.items():
-       result.append([analysis_dict[lead_name]['bpm'], analysis_dict[lead_name]['missing_qrs'],analysis_dict[lead_name]['missing_p'],analysis_dict[lead_name]['qrs_duration'], analysis_dict[lead_name]['s_duration'],analysis_dict[lead_name]['rhythm'],analysis_dict[lead_name]['notched'],analysis_dict['heart_axis'],analysis_dict['rhythm_origin_vertical'], analysis_dict['rhythm_origin_horizontal']])
+        tmp_result = []
+        for key in signals_to_extract:
+            if key in analysis_dict[lead_name]:
+                tmp_result.append(analysis_dict[lead_name][key])
+            else:
+                tmp_result.append(0)
+       result.append(tmp_result)
 
     return np.array(result, dtype=np.float64)
