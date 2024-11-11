@@ -390,7 +390,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
 def analysis_dict_to_array(analysis_dict, leads_idxs=leads_idx):
     result = []
     logger.debug(analysis_dict)
-    signals_to_extract = ['bpm', 'missing_qrs', 'missing_p', 'qrs_duration', 's_duration', 'rhythm', 'rhythm_origin', 'notched', 'heart_axis', 'rhythm_origin_vertical', 'rhythm_origin_horizontal']
+    signals_to_extract = ['bpm', 'missing_qrs', 'missing_p', 'qrs_duration', 's_duration', 'rhythm', 'notched', 'heart_axis', 'rhythm_origin_vertical', 'rhythm_origin_horizontal']
     for lead_name, idx in leads_idxs.items():
         tmp_result = []
         for key in signals_to_extract:
