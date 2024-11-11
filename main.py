@@ -40,7 +40,10 @@ def main():
     log_filename =f'logs/{date}/{time}.log'
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
   
-  logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    logging.basicConfig(filename=log_filename, 
+                      level=logging.INFO,
+                      format='%(asctime)s %(levelname)-8s %(message)s',
+                      datefmt='%Y-%m-%d %H:%M:%S')
 
    utilityFunctions = UtilityFunctions(device)
     
