@@ -213,7 +213,7 @@ class UtilityFunctions:
     def one_file_training_data(self, recording, single_peak_length, peaks):
         logger.debug("Entering one_file_training_data")
         x = []
-        rr_features = np.zeros((1, 12, 10), dtype=np.float64)
+        rr_features = np.zeros((len(peaks), 12, 10), dtype=np.float64)
         coeffs = []
         for i, peak in enumerate(peaks):
             if peak < 125:
@@ -229,16 +229,20 @@ class UtilityFunctions:
             x.append(signal)
             coeffs.append(wavelet_features)
 
+        x = np.array(x, dtype=np.float64)
+        coeffs = np.asarray(coeffs,  dtype=np.float64)
+
+
         try:
             domain_knowledge_analysis = analyse_recording(recording)
             rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[:, :, np.newaxis], len(peaks), axis=2)
+            return rr_features, x, coeffs
         except Exception as e:
             logger.warn(e)
-    
-        x = np.array(x, dtype=np.float64)
-        coeffs = np.asarray(coeffs,  dtype=np.float64)
-    
+           
         return rr_features, x, coeffs
+    
+    
 
 
     def get_wavelet_features(self, signal, wavelet):
