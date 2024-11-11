@@ -17,7 +17,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser(prog='PHD Network Trainer',
                     description='Python based software to train and evaluate NN for ECG analysis',
-                    epilog='Good luck with your research and thesis future Bart!'))
+                    epilog='Good luck with your research and thesis future Bart!')
 parser.add_argument("-i", "--input", help = "Input directory")
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
 # Read arguments from command line
