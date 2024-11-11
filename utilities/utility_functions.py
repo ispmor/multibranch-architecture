@@ -395,10 +395,12 @@ class UtilityFunctions:
         peaks = pan_tompkins_detector(500, x_features[0])
     
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, self.window_size, peaks)
-        logger.debug(rr_features, rr_features.shape)
+        logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
         x_features = torch.Tensor(x_features)
+        logger.debug(f"X_features shape from one_file_training_data: {x_features.shape}")
         rr_features = torch.Tensor(rr_features)
         wavelet_features = torch.Tensor(wavelet_features)
+        logger.debug(f"Wavelets_features from one_file_training_data: {wavelet_features.shape}")
     
         # Predict labels and probabilities.
         if len(x_features) == 0:
@@ -410,6 +412,10 @@ class UtilityFunctions:
             x = torch.transpose(x_features, 1, 2)
             rr_features = torch.transpose(rr_features, 1, 2)
             wavelet_features = torch.transpose(wavelet_features, 1, 2)
+
+            logger.debug(f"X Shape after transpose: {x.shape}")
+            logger.debug(f"RR_Features after transpose: {rr_features.shape}")
+            logger.debug(f"Wavelets_features after transpose: {wavelet_features.shape}")
     
             rr_x = torch.hstack((rr_features, x))
             rr_wavelets = torch.hstack((rr_features, wavelet_features))
