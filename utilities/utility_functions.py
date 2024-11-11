@@ -240,8 +240,7 @@ class UtilityFunctions:
             return rr_features, x, coeffs
         except Exception as e:
             logger.warn(e)
-            raise
-           
+        
         return rr_features, x, coeffs
     
     
