@@ -33,13 +33,20 @@ def main():
 
     if clean_datasets_var:
         clean_datasets_directory()
+    
     execution_time=datetime.now()
     date = execution_time.date()
     time = execution_time.time()
     log_filename =f'logs/{date}/{time}.log'
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
-    logging.basicConfig(filename=log_filename, level=logging.INFO)
-    utilityFunctions = UtilityFunctions(device)
+  
+  logging.basicConfig(filename=log_filename,
+                      level=logging.INFO,
+                      format='%(asctime)s %(levelname)-8s %(message)s',
+                      datefmt='%Y-%m-%d %H:%M:%S')
+
+   utilityFunctions = UtilityFunctions(device)
+    
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
     
