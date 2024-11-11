@@ -329,14 +329,20 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
         signal, info =nk.ecg_process(rec_clean, sampling_rate=sampling_rate)
         
         bpm = cleanse_data_mean(nk.ecg_rate(signal, sampling_rate))
-
+        logger.debug(f"bpm: {bpm}")
         missing_qrs = has_missing_qrs(signal, info)
+        logger.debug(f"missing_qrs: {missing_qrs}")
         missing_p = has_missing_p(signal, info)
+        logger.debug(f"missing_p: {missing_p}")
         qrs_duration = cleanse_data_mean(get_QRS_duration(signal, info))
+        logger.debug(f"qrs_duration: {qrs_duration}")
         s_duration = cleanse_data_mean(get_S_duration(signal, info))
+        logger.debug(f"s_duration: {s_duration}")
         rhythm = leading_rythm(bpm)
+        logger.debug(f"Rhythm: {rhythm}")
         # rsr = has_rsR_complex(rec[idx], sampling_rate)
         notched = analyse_notched_signal(rec[idx])
+        logger.debug(f"Notched: {notched}")
 
         analysed_results[lead_name]={
             'signal': signal,
