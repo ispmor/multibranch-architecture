@@ -311,17 +311,26 @@ def has_rsR_complex(recording, threshold=20):
 
 
 
+def cleanse_data_mean(array):
+    if array.size > 0 and array:
+        result = np.nan_to_num(array, posinf=99999, neginf=-99999)
+        return  np.mean(result)
+    else:
+        return -1
+
+
 
 def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():
-        rec_clean = nk.ecg_clean(rec[idx], method="pantompkins1985", sampling_rate=sampling_rate)
+        rec_clean = nk.ecg_clean(rec[idx], sampling_rate=sampling_rate)
         signal, info =nk.ecg_process(rec_clean, sampling_rate=sampling_rate)
-        bpm = np.mean(nk.ecg_rate(signal, sampling_rate))
+        
+        bpm = cleanse_data_mean(nk.ecg_rate(signal, sampling_rate))
         missing_qrs = has_missing_qrs(signal, info)
         missing_p = has_missing_p(signal, info)
-        qrs_duration = np.mean(get_QRS_duration(signal, info))
-        s_duration = np.mean(get_S_duration(signal, info))
+        qrs_duration = cleanse_data_mean(get_QRS_duration(signal, info))
+        s_duration = cleanse_data_mean(get_S_duration(signal, info))
         rhythm = leading_rythm(bpm)
         # rsr = has_rsR_complex(rec[idx], sampling_rate)
         notched = analyse_notched_signal(rec[idx])

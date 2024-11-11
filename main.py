@@ -7,14 +7,25 @@ from challenge import find_challenge_files
 from utilities.cleaner import clean_datasets_directory
 from utilities.utility_functions import UtilityFunctions
 from sklearn.model_selection import KFold
+import argparse
 
 logger = logging.getLogger(__name__)
 
 
-data_directory="../data/total"
-clean_datasets_var=True
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+parser = argparse.ArgumentParser(prog='PHD Network Trainer',
+                    description='Python based software to train and evaluate NN for ECG analysis',
+                    epilog='Good luck with your research and thesis future Bart!'))
+parser.add_argument("-i", "--input", help = "Input directory")
+parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
+# Read arguments from command line
+args = parser.parse_args()
+
+data_directory=parser.input
+clean_datasets_var=parser.clean
+
 
 def main():
     alpha_config = BranchConfig("LSTM", 7, 2, 350)
