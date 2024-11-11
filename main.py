@@ -23,8 +23,8 @@ parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", acti
 # Read arguments from command line
 args = parser.parse_args()
 
-data_directory=parser.input
-clean_datasets_var=parser.clean
+data_directory= args.input
+clean_datasets_var=args.clean
 
 
 def main():
