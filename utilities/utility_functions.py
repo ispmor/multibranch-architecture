@@ -236,7 +236,7 @@ class UtilityFunctions:
 
         try:
             domain_knowledge_analysis = analyse_recording(recording)
-            rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=2)
+            rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
             logger.warn(e)
