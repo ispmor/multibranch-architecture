@@ -23,3 +23,5 @@ def run():
 
     clean_datafiles_which_not_in_classes(header_files, recording_files, classes, target_directory)
 
+
+run()
