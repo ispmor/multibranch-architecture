@@ -14,7 +14,7 @@ def clean_datafiles_which_not_in_classes(header_files, recording_files, classes,
 
 
 def run():
-    header_files, recording_files = find_challenge_files(data_directory)
+    header_files, recording_files = find_challenge_files("../data/full_data_flat")
     classes = ['6374002', '10370003', '17338001', '39732003', '47665007', '59118001', '59931005',
                                 '111975006', '164889003', '164890007', '164909002', '164917005', '164934002',
                                 '164947007', '251146004', '270492004', '284470004', '365413008', '426177001', '426627000',
