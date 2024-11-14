@@ -4,12 +4,21 @@ from challenge import find_challenge_files, load_header, get_labels
 
 def clean_datafiles_which_not_in_classes(header_files, recording_files, classes, target_directory):
     os.makedirs(target_directory, exist_ok=True)
+    classes_counter = {}
     for i in range(len(header_files)):
         classes_from_header = get_labels(load_header(header_files[i]))
         if not any([c in classes for c in classes_from_header]):
+            for c in classes_from_header:
+                if c in classes_counter:
+                    classes_counter[c] += 1
+                else:
+                    classes_counter[c] = 1
+
             shutil.move(header_files[i], target_directory)
             shutil.move(recording_files[i], target_directory)
-            print(f"Moving: {header_files[i]}")
+            print(f"Moving: {header_files[i]} with class: {classes_from_header}")
+    print("Moved in total:")
+    print(classes_counter)
 
 
 
