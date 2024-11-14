@@ -1,6 +1,6 @@
 import os, shutil
 
-from challenge import find_challenge_files
+from challenge import find_challenge_files, load_header, get_labels
 
 def clean_datafiles_which_not_in_classes(header_files, recording_files, classes, target_directory):
     os.makedirs(target_directory, exist_ok=True)
