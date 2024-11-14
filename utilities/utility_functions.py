@@ -330,7 +330,7 @@ class UtilityFunctions:
                 recording = None
                 try:
                     recording = load_recording(recording_files[i])
-                except Exception e:
+                except Exception as e:
                     logger.warn(f"Moving {header_files[i] and associated recording to {thrash_data_dir} because of {e}")
                     shutil.move(header_files[i], thrash_data_dir)
                     shutil.move(recording_files[i], thrash_data_dir)
