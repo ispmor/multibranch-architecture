@@ -14,6 +14,7 @@ import torch
 import csv
 import time
 from .domain_knowledge_processing import analyse_recording, analysis_dict_to_array
+import shutil
 
 
 
