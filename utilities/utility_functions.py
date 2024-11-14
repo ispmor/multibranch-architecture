@@ -19,6 +19,8 @@ from .domain_knowledge_processing import analyse_recording, analysis_dict_to_arr
 
 logger = logging.getLogger(__name__)
 
+thrash_data_dir="../data/irrelevant"
+
 
 def save_headers_recordings_to_json(filename, headers, recordings, idxs):
     with open(filename, 'w') as f:
@@ -324,6 +326,15 @@ class UtilityFunctions:
                     if not s1.intersection(s2):
                         logger.debug("sets do not intersect")
                         continue
+
+                recording = None
+                try:
+                    recording = load_recording(recording_files[i])
+                except Exception e:
+                    logger.warn(f"Moving {header_files[i] and associated recording to {thrash_data_dir} because of {e}")
+                    shutil.move(header_files[i], thrash_data_dir)
+                    shutil.move(recording_files[i], thrash_data_dir)
+                    continue
 
                 recording = np.array(load_recording(recording_files[i]), dtype=np.float32)
    
