@@ -247,8 +247,8 @@ def analyse_notched_signal(signal, info, recording, threshold=1.5, **kwargs):
     if len(list_of_qrs) ==0:
         return -1
 
-    beg_qrs = [qrs[0] for qrs in list_of_qrs]
-    end_qrs = [qrs[2] for qrs in list_of_qrs]
+    beg_qrs = np.array([qrs[0] for qrs in list_of_qrs])
+    end_qrs = np.array([qrs[2] for qrs in list_of_qrs])
     (cA, cD) = pywt.dwt(recording, 'bior1.1')
     crossing_0 = get_0_crossings(cD, beg_qrs, end_qrs, **kwargs)
     if len(crossing_0) > 0:
