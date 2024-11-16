@@ -163,11 +163,11 @@ class UtilityFunctions:
         if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
             logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
             with open(classes_occurences_filename, 'r') as f:
-                self.classes_numbers = json.load(f)
+                self.classes_counts = json.load(f)
         elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
             logger.info(f"Classes counts > 0, saving counts to {classes_occurences_filename} file")
             with open(classes_occurences_filename, 'w') as f:
-                json.dump(self.classes_numbers, f)
+                json.dump(self.classes_counts, f)
 
         logger.info(f"Classes counts: {self.classes_counts}")
 
