@@ -348,7 +348,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
         s_duration = cleanse_data_mean(get_S_duration(signal, info))
         rhythm = leading_rythm(bpm)
         # rsr = has_rsR_complex(rec[idx], sampling_rate)
-        notched = analyse_notched_signal(signal,rec[idx])
+        notched = analyse_notched_signal(signal,info, rec[idx])
 
         analysed_results[lead_name]={
             'signal': signal,
