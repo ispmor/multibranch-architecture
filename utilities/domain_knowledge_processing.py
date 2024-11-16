@@ -243,7 +243,7 @@ def get_qrs_beginning_and_end(ecg_clean, smoothwindow=0.1, avgwindow=0.75, gradt
 
 
 def analyse_notched_signal(signal, info, recording, threshold=1.5, **kwargs):
-    list_of_qrs = get_QRS_from_lead(recording) #get_qrs_beginning_and_end(signal['ECG_Raw'], **kwargs)
+    list_of_qrs = get_QRS_from_lead(signal, info) #get_qrs_beginning_and_end(signal['ECG_Raw'], **kwargs)
     if len(list_of_qrs) ==0:
         return -1
 
