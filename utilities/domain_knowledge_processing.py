@@ -26,11 +26,17 @@ def get_wavelet_orientation(onset, peak, offset):
 
 #R->L (correct) return 1, L->R (incorrect) return -1 LEAD I
 def get_right_left_activation_leadI(p_complexes):
-    return np.mean([get_wavelet_orientation(*px) for px in p_complexes])
+    if len(p_complexes) > 0:
+        return cleanse_data_mean([get_wavelet_orientation(*px) for px in p_complexes])
+    else:
+        return 0
 
 #Correct sinus return 1 (pwave positive), Extra sinus orign return -1 (pwave negative) on lead II or lead III or aVF
 def get_vertical_orientation(p_complexes):
-    return np.mean([get_wavelet_orientation(*px) for px in p_complexes])
+    if len(p_complexes) > 0:
+        return cleanse_data_mean([get_wavelet_orientation(*px) for px in p_complexes])
+    else:
+        return 0
 
 def get_p_complex(signals, info):
     num_peaks = len(info['ECG_P_Peaks'])
@@ -117,7 +123,7 @@ def has_missing_qrs(signals, info):
     quantile10=np.quantile(distances,0.1)
     outliers_removed=[d for d in distances if (d>quantile10 and d<quantile90)]
     if len(outliers_removed) > 0:
-        mean_without_outliers = np.mean(outliers_removed)
+        mean_without_outliers = cleanse_data_mean(outliers_removed)
         is_missing_qrs = distances > (mean_without_outliers * 1.5)
         return any(is_missing_qrs)
     else:
@@ -375,7 +381,7 @@ def analyse_recording(rec, label=None, leads_idxs=leads_idx, sampling_rate=500):
 
 
     if heart_axis:
-        analysed_results['heart_axis']=np.mean(heart_axis)
+        analysed_results['heart_axis']=cleanse_data_mean(heart_axis)
 
     if rhythm_origin:
         analysed_results['rhythm_origin_vertical']=rhythm_origin[0]

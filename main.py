@@ -12,24 +12,30 @@ import argparse
 logger = logging.getLogger(__name__)
 
 
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 parser = argparse.ArgumentParser(prog='PHD Network Trainer',
                     description='Python based software to train and evaluate NN for ECG analysis',
                     epilog='Good luck with your research and thesis future Bart!')
 parser.add_argument("-i", "--input", help = "Input directory")
+parser.add_argument("-t", "--target", help = "Target directory for H5 Datasets", default="h5_datasets")
+parser.add_argument("-g", "--gpu", help = "GPU number", default="1")
+parser.add_argument("-m", "--model", help = "Models directory")
+parser.add_argument("-w", "--window_size", help = "Window size for peak analysis", default=350, type=int)
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
 # Read arguments from command line
 args = parser.parse_args()
 
 data_directory= args.input
+datasets_target_dir = args.target
+gpu_number = args.gpu
+models_dir = args.model
 clean_datasets_var=args.clean
+window_size = args.window_size
 
+device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
 def main():
-    alpha_config = BranchConfig("LSTM", 7, 2, 350)
-    beta_config = BranchConfig("LSTM", 7, 2, 350)
+    alpha_config = BranchConfig("LSTM", 7, 2, window_size)
+    beta_config = BranchConfig("LSTM", 7, 2, window_size)
 
     if clean_datasets_var:
         clean_datasets_directory()
@@ -45,7 +51,7 @@ def main():
                       format='%(asctime)s %(levelname)-8s %(message)s',
                       datefmt='%Y-%m-%d %H:%M:%S')
 
-    utilityFunctions = UtilityFunctions(device)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir)
     
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)

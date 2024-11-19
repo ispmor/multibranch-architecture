@@ -53,19 +53,22 @@ class UtilityFunctions:
     two_leads = ('I', 'II')
     leads_set = [twelve_leads]#, six_leads, four_leads, three_leads, two_leads]
 
-    window_size = 350
     classes = set()
-    training_filename = 'h5_datasets/cinc_database_training_{0}_{1}.h5'
-    validation_filename = 'h5_datasets/cinc_database_validation_{0}_{1}.h5'
-    training_full_filename = 'h5_datasets/cinc_database_training_full_{0}_{1}.h5'
-    test_filename = 'h5_datasets/cinc_database_test_{0}_{1}.h5'
-    training_weights_filename = "h5_datasets/weights_fold{0}_training.csv"
-    training_with_validation_weights_filename = "h5_datasets/weights_full_fold{0}_training.csv"
 
 
 
-    def __init__(self, device) -> None:
+    def __init__(self, device, datasets_dir="h5_datasets/", window_size=350, rr_features_size=10, wavelet_features_size=185) -> None:
         self.device = device
+        self.window_size = window_size
+        self.rr_features_size = rr_features_size
+        self.wavelet_features_size = wavelet_features_size
+
+        self.training_filename = datasets_dir + 'cinc_database_training_{0}_{1}.h5'
+        self.validation_filename = datasets_dir + 'cinc_database_validation_{0}_{1}.h5'
+        self.training_full_filename = datasets_dir + 'cinc_database_training_full_{0}_{1}.h5'
+        self.test_filename = datasets_dir + 'cinc_database_test_{0}_{1}.h5'
+        self.training_weights_filename = datasets_dir + "weights_fold{0}_training.csv"
+        self.training_with_validation_weights_filename = datasets_dir + "weights_full_fold{0}_training.csv"
 
     #TODO create def initiate_classes_count method which will zero the classes_counts, also we need a global count
 
@@ -217,12 +220,13 @@ class UtilityFunctions:
         logger.debug("Entering one_file_training_data")
         x = []
         coeffs = []
+        horizon = self.window_size // 2
         for i, peak in enumerate(peaks):
-            if peak < 125:
+            if peak < horizon:
                 signal = recording[:, 0: single_peak_length]
                 wavelet_features = self.get_wavelet_features(signal,'db2')
-            elif peak + 225 < len(recording[0]):
-                signal = recording[:, 0: single_peak_length]
+            elif peak + horizon < len(recording[0]):
+                signal = recording[:, peak-horizon: peak + horizon]
                 wavelet_features = self.get_wavelet_features(signal, 'db2')
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
@@ -234,7 +238,7 @@ class UtilityFunctions:
         x = np.array(x, dtype=np.float64)
         coeffs = np.asarray(coeffs,  dtype=np.float64)
 
-        rr_features = np.zeros((x.shape[0], 12, 10), dtype=np.float64)
+        rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
 
 
         try:
@@ -250,6 +254,7 @@ class UtilityFunctions:
 
 
     def get_wavelet_features(self, signal, wavelet):
+        #TODO WHy do I downsample the signal ?!
         a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], wavelet, level=4)
         return np.hstack((a4, d4, d3, d2, d1))
 
@@ -296,6 +301,9 @@ class UtilityFunctions:
         if not filename:
             filename = f'cinc_database_{group}.h5'
     
+ 
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+ 
         with h5py.File(filename, 'w') as h5file:
     
             grp = h5file.create_group(group)
@@ -305,8 +313,8 @@ class UtilityFunctions:
                                       chunks=(1, len(leads), self.window_size))
             lset = grp.create_dataset("label", (1, num_classes), maxshape=(None, num_classes), dtype='f',
                                       chunks=(1, num_classes))
-            rrset = grp.create_dataset("rr_features", (1, len(leads), 10), maxshape=(None, len(leads), 10), dtype='f',
-                                       chunks=(1, len(leads), 10))
+            rrset = grp.create_dataset("rr_features", (1, len(leads), self.rr_features_size), maxshape=(None, len(leads), self.rr_features_size), dtype='f',
+                                       chunks=(1, len(leads), self.rr_features_size))
             waveset = grp.create_dataset("wavelet_features", (1, len(leads), 185), maxshape=(None, len(leads), 185),
                                          dtype='f',
                                          chunks=(1, len(leads), 185))
