@@ -204,7 +204,6 @@ def get_baselines(header, leads):
 def get_labels(header):
     labels = list()
     for l in header.split('\n'):
-        logger.debug(f"currently processed line: {l}")
         if l.startswith('#Dx') or l.startswith('# Dx'):
             try:
                 entries = l.split(': ')[1].split(',')

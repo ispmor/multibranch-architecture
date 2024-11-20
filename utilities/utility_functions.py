@@ -362,7 +362,7 @@ class UtilityFunctions:
     
                 rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, self.window_size,
                                                                                            peaks, header_files[i], remove_baseline)
-                logger.debug(f"RR Features: {rr_features}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features}")
+                logger.debug(f"RR Features: {rr_features.shape}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features}")
     
                 local_label = np.zeros((num_classes,), dtype=bool)
                 for label in current_labels:
