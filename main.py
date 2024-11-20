@@ -58,7 +58,7 @@ def main():
 
     logging.basicConfig(filename=log_filename, 
                       level=logging_level,
-                      format='%(asctime)s %(levelname)-8s %(message)s',
+                      format='[%(asctime)s %(levelname)-8s %(filename)s:%(lineno)s]  %(message)s',
                       datefmt='%Y-%m-%d %H:%M:%S')
     logger.info(f"!!! Experiment: {name} !!!")
 
