@@ -22,6 +22,8 @@ parser.add_argument("-m", "--model", help = "Models directory")
 parser.add_argument("-w", "--window_size", help = "Window size for peak analysis", default=350, type=int)
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
 parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
+parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
+parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -33,6 +35,8 @@ models_dir = args.model
 clean_datasets_var=args.clean
 window_size = args.window_size
 name = args.name
+debug_mode = args.debug
+remove_baseline = args.remove_baseline
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
@@ -48,9 +52,12 @@ def main():
     time = execution_time.time()
     log_filename =f'logs/{date}/{time}.log'
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
-  
+    logging_level = logging.INFO
+    if debug_mode:
+        logging_level = logging.DEBUG
+
     logging.basicConfig(filename=log_filename, 
-                      level=logging.INFO,
+                      level=logging_level,
                       format='%(asctime)s %(levelname)-8s %(message)s',
                       datefmt='%Y-%m-%d %H:%M:%S')
     logger.info(f"!!! Experiment: {name} !!!")
@@ -76,7 +83,7 @@ def main():
 
         for fold, (data_training_full, data_test) in enumerate(fold_splits):
             logger.info(f"Beginning {fold} fold processing")
-            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index)
+            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
             weights = utilityFunctions.load_training_weights_for_fold(fold)
 

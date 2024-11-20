@@ -108,7 +108,7 @@ class UtilityFunctions:
         for k, v in new_counts.items():
             self.classes_counts[k] += v
 
-    def prepare_h5_dataset(self, leads, fold, single_fold_data_training, single_fold_data_test, header_files, recording_files, classes_index):
+    def prepare_h5_dataset(self, leads, fold, single_fold_data_training, single_fold_data_test, header_files, recording_files, classes_index, remove_baseline=False):
         logger.info(f"Preparing H5 dataset for {leads} leads, fold: {fold}")
         training_data_length = len(single_fold_data_training)
         lengths = [int(training_data_length * 0.8), training_data_length - int(training_data_length * 0.8)]
@@ -123,20 +123,11 @@ class UtilityFunctions:
         training_with_validation_weights_filename = self.training_with_validation_weights_filename.format(fold)
 
 
-        #TODO why do I create this dataset?
-        #if not os.path.isfile(training_full_filename):  # _{len(leads)}_training.h5'):
-        #    logger.info(f"{training_full_filename} not found, creating database")
-        #    self.create_hdf5_db(single_fold_data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
-        #                       classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_full_filename)
-        #    sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
-        #    weights = self.calculate_pos_weights(sorted_classes_numbers.values())
-        #    np.savetxt(training_with_validation_weights_filename, np.asarray(weights), delimiter=',')
-
 
         if not os.path.isfile(training_filename):  # _{len(leads)}_training.h5'):
             logger.info(f"{training_filename} not found, creating database")
             local_training_counts = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
-                               classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_filename)
+                               classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_filename, remove_baseline=remove_baseline)
             self.add_classes_counts(local_training_counts)
             sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
 
@@ -148,14 +139,14 @@ class UtilityFunctions:
         if not os.path.isfile(validation_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{validation_filename} not found, creating database")
             local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
-                               classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename)
+                               classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename, remove_baseline=remove_baseline)
             self.add_classes_counts(local_validation_counts)
             save_headers_recordings_to_json(f"{validation_filename}_header_recording_files.json", header_files, recording_files, data_validation) 
 
         if not os.path.isfile(test_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{test_filename} not found, creating database")
             local_test_counts = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
-                               classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename)
+                               classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename, remove_baseline=remove_baseline)
             
             self.add_classes_counts(local_test_counts)
             save_headers_recordings_to_json(f"{test_filename}_header_recording_files.json", header_files, recording_files, single_fold_data_test) 
@@ -218,39 +209,41 @@ class UtilityFunctions:
 
 
 
-    def one_file_training_data(self, recording, single_peak_length, peaks):
+    def one_file_training_data(self, recording, single_peak_length, peaks, header_file, remove_baseline=False):
         logger.debug("Entering one_file_training_data")
-        signal_bw_removed, file_coeffs = baseline_wandering_removal(recording, 'db2', 4)
-        signal_denoised = wavelet_threshold(signal_bw_removed,file_coeffs, 'db2')
+        signal = recording
+        if remove_baseline:
+            signal, _ = baseline_wandering_removal(recording, 'sym10', 9)
+
         x = []
         coeffs = []
         horizon = self.window_size // 2
         for i, peak in enumerate(peaks):
             if peak < horizon:
-                signal = recording[:, 0: single_peak_length]
-                wavelet_features = self.get_wavelet_features(signal,'db2')
-            elif peak + horizon < len(recording[0]):
-                signal = recording[:, peak-horizon: peak + horizon]
-                wavelet_features = self.get_wavelet_features(signal, 'db2')
+                signal_local = signal[:, 0: single_peak_length]
+                wavelet_features = self.get_wavelet_features(signal_local,'db2')
+            elif peak + horizon < len(signal[0]):
+                signal_local = signal[:, peak-horizon: peak + horizon]
+                wavelet_features = self.get_wavelet_features(signal_local, 'db2')
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
             
-            x.append(signal)
+            x.append(signal_local)
             coeffs.append(wavelet_features)
 
         x = np.array(x, dtype=np.float64)
         coeffs = np.asarray(coeffs,  dtype=np.float64)
 
-        rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
+        rr_features = np.zeros((x.shape[0], signal.shape[0], self.rr_features_size), dtype=np.float64)
 
 
         try:
-            domain_knowledge_analysis = analyse_recording(recording)
+            domain_knowledge_analysis = analyse_recording(recording, pantompkins_peaks=peaks)
             rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
-            logger.warn(e)
+            logger.warn(f"Currently processed file: {header_file}, issue:{e}")
         
         return rr_features, x, coeffs
     
@@ -289,7 +282,7 @@ class UtilityFunctions:
 
 
 
-    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None):
+    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None, remove_baseline=False):
         group = None
         if isTraining == 1:
             group = 'training'
@@ -368,7 +361,7 @@ class UtilityFunctions:
                 logger.debug(f"Peaks: {peaks}") 
     
                 rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, self.window_size,
-                                                                                           peaks)
+                                                                                           peaks, header_files[i], remove_baseline)
                 logger.debug(f"RR Features: {rr_features}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features}")
     
                 local_label = np.zeros((num_classes,), dtype=bool)
