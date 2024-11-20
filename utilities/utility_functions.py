@@ -258,7 +258,6 @@ class UtilityFunctions:
 
     @staticmethod
     def clean_labels(header):
-        logger.debug(f"Clean label for header file: {header}")
         classes_from_header = get_labels(header)
         
         logger.debug(f"Classes found in header: {classes_from_header}")
@@ -346,7 +345,6 @@ class UtilityFunctions:
    
 
                 recording_full = get_leads_values(header, recording, leads)
-                logger.debug(recording_full)
                 
                 freq = get_frequency(header)
                 logger.debug(f"Frequency: {freq}")
@@ -362,7 +360,7 @@ class UtilityFunctions:
     
                 rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, self.window_size,
                                                                                            peaks, header_files[i], remove_baseline)
-                logger.debug(f"RR Features: {rr_features.shape}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features}")
+                logger.debug(f"RR Features: {rr_features.shape}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features.shape}")
     
                 local_label = np.zeros((num_classes,), dtype=bool)
                 for label in current_labels:
