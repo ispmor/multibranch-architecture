@@ -259,7 +259,7 @@ def analyse_notched_signal(signal, info, recording, threshold=1.5, peaks=None, *
     (_, cD) = pywt.dwt(recording, 'bior1.1')
     crossing_0 = get_0_crossings(cD, beg_qrs, end_qrs, **kwargs)
     if len(crossing_0) > 0:
-        return avg_0_crossing = np.mean(crossing_0)
+        return cleanse_data_mean(crossing_0)
     else:
         return -1
 
