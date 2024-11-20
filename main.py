@@ -21,6 +21,8 @@ parser.add_argument("-g", "--gpu", help = "GPU number", default="1")
 parser.add_argument("-m", "--model", help = "Models directory")
 parser.add_argument("-w", "--window_size", help = "Window size for peak analysis", default=350, type=int)
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
+parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
+
 # Read arguments from command line
 args = parser.parse_args()
 
@@ -30,6 +32,7 @@ gpu_number = args.gpu
 models_dir = args.model
 clean_datasets_var=args.clean
 window_size = args.window_size
+name = args.name
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
@@ -50,6 +53,7 @@ def main():
                       level=logging.INFO,
                       format='%(asctime)s %(levelname)-8s %(message)s',
                       datefmt='%Y-%m-%d %H:%M:%S')
+    logger.info(f"!!! Experiment: {name} !!!")
 
     utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir)
     

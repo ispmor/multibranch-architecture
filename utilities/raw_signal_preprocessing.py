@@ -72,7 +72,6 @@ def wavelet_threshold(
         threshold = [
              _bayes_thresh(level, var) for level in dcoeffs
         ]
-    print(threshold)
 
     if np.isscalar(threshold):
         # A single threshold for all coefficient arrays
@@ -95,8 +94,8 @@ def wavelet_threshold(
 
 
 def baseline_wandering_removal(signal, wavelet, level):
-    N = len(signal)
+    N = len(signal[0])
     coeffs = pywt.wavedec(data=signal, wavelet=wavelet, level=level)
-    reconstructed_approximates = pywt.upcoef('a', coeffs[0], wavelet, level=level)[:N]
+    reconstructed_approximates = [pywt.upcoef('a', coeffs[0][i], wavelet, level=level)[:N] for i in range(len(signal))]
     result = signal - reconstructed_approximates
     return result, coeffs

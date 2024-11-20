@@ -14,6 +14,8 @@ import torch
 import csv
 import time
 from .domain_knowledge_processing import analyse_recording, analysis_dict_to_array
+from .raw_signal_preprocessing import baseline_wandering_removal, wavelet_threshold
+
 import shutil
 
 
@@ -218,6 +220,8 @@ class UtilityFunctions:
 
     def one_file_training_data(self, recording, single_peak_length, peaks):
         logger.debug("Entering one_file_training_data")
+        signal_bw_removed, file_coeffs = baseline_wandering_removal(recording, 'db2', 4)
+        signal_denoised = wavelet_threshold(signal_bw_removed,file_coeffs, 'db2')
         x = []
         coeffs = []
         horizon = self.window_size // 2
