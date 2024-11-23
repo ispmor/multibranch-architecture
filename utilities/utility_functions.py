@@ -391,7 +391,7 @@ class UtilityFunctions:
 
                 recording = None
 
-                recording_full = load_and_equalize_recording(recording_files[i], header, sampling_rate)
+                recording_full = self.load_and_equalize_recording(recording_files[i], header, sampling_rate)
                 if recording_full is None:
                     continue
 
@@ -401,7 +401,7 @@ class UtilityFunctions:
 
                 start_processing = time.time()
 
-                signals, infos, peaks, rates = preprocess_recording(recording, header)
+                signals, infos, peaks, rates = self.preprocess_recording(recording, header)
 
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
@@ -463,7 +463,7 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        signals, infos, peaks, rates = preprocess_recording(x_featuress, header)
+        signals, infos, peaks, rates = self.preprocess_recording(x_featuress, header)
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, signals, infos, rates, self.window_size, peaks, header)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
         x_features = torch.Tensor(x_features)
