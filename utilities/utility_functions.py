@@ -360,11 +360,10 @@ class UtilityFunctions:
                     logging.debug("Skipping as recording full seems to be none or empty")
                     continue
                
-                processing_steps = ["remove_baseline", "denoise", "get_peaks", "extract_domain_knowledge"]
                 start_processing = time.time()
 
                 if remove_baseline:
-                    recording, _ = baseline_wandering_removal(recording, 'sym10', 9)
+                    recording, _ = baseline_wandering_removal(recording, 'sym10',8)
 
                 signals = {}
                 infos = {}
@@ -378,10 +377,10 @@ class UtilityFunctions:
                     
                     rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method="pantompkins1985") 
                     signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
-                    #peaks = pan_tompkins_detector(500, recording_full[0])
                     signals[lead_name] = signal
                     infos[lead_name] = info
                     rpeaks_avg.append(rpeaks['ECG_R_Peaks'])
+                    info['ECG_R_Peaks'] = rpeaks['ECG_R_Peaks']
 
                     rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=500)
 
