@@ -388,7 +388,6 @@ class UtilityFunctions:
                         logger.debug("sets do not intersect")
                         continue
 
-                recording = None
 
                 recording_full = self.load_and_equalize_recording(recording_files[i],header, header_files[i], sampling_rate, leads)
                 if recording_full is None:
@@ -400,7 +399,7 @@ class UtilityFunctions:
 
                 start_processing = time.time()
 
-                signals, infos, peaks, rates = self.preprocess_recording(recording, header, remove_baseline)
+                signals, infos, peaks, rates = self.preprocess_recording(recording_full, header, remove_baseline)
 
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
