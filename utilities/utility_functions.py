@@ -314,7 +314,7 @@ class UtilityFunctions:
         return (signals, infos, peaks, rates)
 
 
-    def load_and_equalize_recording(self, recording_file, header, header_file, sampling_rate):
+    def load_and_equalize_recording(self, recording_file, header, header_file, sampling_rate, leads):
         try:
             recording = np.array(load_recording(recording_file), dtype=np.float32)
             recording_full = get_leads_values(header, recording, leads)
@@ -390,7 +390,7 @@ class UtilityFunctions:
 
                 recording = None
 
-                recording_full = self.load_and_equalize_recording(recording_files[i],header, header_files[i], sampling_rate)
+                recording_full = self.load_and_equalize_recording(recording_files[i],header, header_files[i], sampling_rate, leads)
                 if recording_full is None:
                     continue
 
