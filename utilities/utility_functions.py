@@ -380,11 +380,12 @@ class UtilityFunctions:
                     #peaks = pan_tompkins_detector(500, recording_full[0])
                     signals[lead_name] = signal
                     infos[lead_name] = info
-                    rpeaks_avg.append(rpeaks)
+                    rpeaks_avg.append(rpeaks['ECG_R_Peaks'])
 
                     rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=500)
 
-                rpeaks_avg = np.array(rpeaks_avg)
+                min_length = min([len(x) for x in rpeaks_avg])
+                rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
 
                 peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0)
 
