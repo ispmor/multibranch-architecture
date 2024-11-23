@@ -1,4 +1,5 @@
 import h5py
+import neurokit2 as nk
 from networks.model import BlendMLP, get_BlendMLP
 from pywt import wavedec
 from challenge import *
