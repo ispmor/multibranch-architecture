@@ -58,7 +58,6 @@ def wavelet_threshold(
 ):
 
     dcoeffs = coeffs[1:]
-    print(signal.ndim)
     original_extent = tuple(slice(s) for s in signal.shape)
 
 
