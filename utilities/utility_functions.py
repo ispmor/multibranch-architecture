@@ -282,7 +282,7 @@ class UtilityFunctions:
 
 
 
-    def preprocess_recording(self, recording, header, bw_wavelet="sym10", bw_level=8, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
+    def preprocess_recording(self, recording, header, remove_baseline, bw_wavelet="sym10", bw_level=8, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
         if remove_baseline:
             recording, _ = baseline_wandering_removal(recording, bw_wavelet,bw_level)
         signals = {}
@@ -400,7 +400,7 @@ class UtilityFunctions:
 
                 start_processing = time.time()
 
-                signals, infos, peaks, rates = self.preprocess_recording(recording, header)
+                signals, infos, peaks, rates = self.preprocess_recording(recording, header, remove_baseline)
 
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
@@ -462,7 +462,7 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        signals, infos, peaks, rates = self.preprocess_recording(x_featuress, header)
+        signals, infos, peaks, rates = self.preprocess_recording(x_featuress, header, True)
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, signals, infos, rates, self.window_size, peaks, header)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
         x_features = torch.Tensor(x_features)
