@@ -388,7 +388,7 @@ class UtilityFunctions:
                 min_length = min([len(x) for x in rpeaks_avg])
                 rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
 
-                peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0)
+                peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
 
                 logger.debug(f"Peaks: {peaks}")
 
