@@ -297,8 +297,8 @@ class UtilityFunctions:
                 rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method=peaks_method)
                 signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
             except Exception as e:
-                debug.warn(e)
-                debug.warn(f"Comming from: \n{header}")
+                logger.warn(e)
+                logger.warn(f"Comming from: \n{header}")
                 return (None, None, None, None)
 
             signals[lead_name] = signal
