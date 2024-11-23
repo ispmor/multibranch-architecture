@@ -314,19 +314,18 @@ class UtilityFunctions:
         return (signals, infos, peaks, rates)
 
 
-    def load_and_equalize_recording(self, recording_file, header, sampling_rate):
+    def load_and_equalize_recording(self, recording_file, header_file, sampling_rate):
         try:
             recording = np.array(load_recording(recording_file), dtype=np.float32)
             recording_full = get_leads_values(header, recording, leads)
             freq = get_frequency(header)
             logger.debug(f"Frequency: {freq}")
             if freq != float(sampling_rate):
-                recording_full = self.equalize_signal_frequency(freq, recording_full)
-        
+                recording_full = self.equalize_signal_frequency(freq, recording_full) 
         except Exception as e:
-            logger.warn(f"Moving {header} and associated recording to {thrash_data_dir} because of {e}")
-            shutil.move(header_files[i], thrash_data_dir)
-            shutil.move(recording_files[i], thrash_data_dir)
+            logger.warn(f"Moving {header_file} and associated recording to {thrash_data_dir} because of {e}")
+            shutil.move(header_file, thrash_data_dir)
+            shutil.move(recording_file, thrash_data_dir)
             recording_full = None
 
         return recording_full
@@ -391,7 +390,7 @@ class UtilityFunctions:
 
                 recording = None
 
-                recording_full = self.load_and_equalize_recording(recording_files[i], header, sampling_rate)
+                recording_full = self.load_and_equalize_recording(recording_files[i], header_files[i], sampling_rate)
                 if recording_full is None:
                     continue
 
