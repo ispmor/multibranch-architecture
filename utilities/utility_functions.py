@@ -319,7 +319,7 @@ class UtilityFunctions:
             avg_processing_times = []
             for i in num_recordings:
                 logger.debug(f"Iterating over {i} out of {num_recordings} files")
-                if len(avg_processing_time) > 0 and len(avg_processing_times) % 500 == 0:
+                if len(avg_processing_times) > 0 and len(avg_processing_times) % 500 == 0:
                     logger.info(f"AVG Processing time of a single file: {np.mean(avg_processing_times)}")
 
                 counter += 1
