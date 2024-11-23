@@ -371,7 +371,7 @@ class UtilityFunctions:
                 wavelet="db6"
                 for lead_name, idx in leads_idxs.items(): 
                     if denoise_signal:
-                        coeffs = pywt.wavedec(data=recording[idx], wavelet=wavelet, level=3)
+                        coeffs = wavedec(data=recording[idx], wavelet=wavelet, level=3)
                         recording[idx] = wavelet_threshold(recording[idx], coeffs, wavelet)
                     
                     rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method="pantompkins1985") 
