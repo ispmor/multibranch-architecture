@@ -281,7 +281,7 @@ class UtilityFunctions:
 
 
 
-    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None, remove_baseline=False, sampling_rate=500):
+    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None, remove_baseline=False, sampling_rate=500, denoise_signal=True):
         group = None
         if isTraining == 1:
             group = 'training'
