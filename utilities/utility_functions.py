@@ -215,6 +215,7 @@ class UtilityFunctions:
 
     def one_file_training_data(self, recording, signals, infos, rates, single_peak_length, peaks, header_file, remove_baseline=False):
         logger.debug("Entering one_file_training_data")
+        logger.debug(f"Recording shape: {recording.shape}")
 
         x = []
         coeffs = []
