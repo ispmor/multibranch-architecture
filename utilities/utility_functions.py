@@ -461,7 +461,7 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        signals, infos, peaks, rates = self.preprocess_recording(x_featuress, header, True)
+        signals, infos, peaks, rates = self.preprocess_recording(x_features, header, True)
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, signals, infos, rates, self.window_size, peaks, header)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
         x_features = torch.Tensor(x_features)
