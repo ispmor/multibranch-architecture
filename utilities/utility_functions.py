@@ -324,7 +324,7 @@ class UtilityFunctions:
                 recording_full = self.equalize_signal_frequency(freq, recording_full)
         
         except Exception as e:
-            logger.warn(f"Moving {header_files[i]} and associated recording to {thrash_data_dir} because of {e}")
+            logger.warn(f"Moving {header} and associated recording to {thrash_data_dir} because of {e}")
             shutil.move(header_files[i], thrash_data_dir)
             shutil.move(recording_files[i], thrash_data_dir)
             recording_full = None
