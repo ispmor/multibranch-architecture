@@ -462,6 +462,12 @@ class UtilityFunctions:
             x_features = self.equalize_signal_frequency(freq, x_features)
 
         signals, infos, peaks, rates = self.preprocess_recording(x_features, header, True)
+        if signals is None or infos is None or peaks is None or rates is None:
+            labels = np.zeros(len(classes))
+            probabilities_mean = np.zeros(len(classes))
+            labels=probabilities_mean > 0.5
+            return classes, labels, probabilities_mean, 0
+
         rr_features, x_features, wavelet_features = self.one_file_training_data(x_features, signals, infos, rates, self.window_size, peaks, header)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
         x_features = torch.Tensor(x_features)
