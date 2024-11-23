@@ -15,7 +15,7 @@ import csv
 import time
 from .domain_knowledge_processing import analyse_recording, analysis_dict_to_array
 from .raw_signal_preprocessing import baseline_wandering_removal, wavelet_threshold
-
+import time
 import shutil
 
 
@@ -23,6 +23,9 @@ import shutil
 logger = logging.getLogger(__name__)
 
 thrash_data_dir="../data/irrelevant"
+
+leads_idx = {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':7, 'V3':8, 'V4':9, 'V5':10, 'V6':11}
+
 
 
 def save_headers_recordings_to_json(filename, headers, recordings, idxs):
@@ -209,21 +212,18 @@ class UtilityFunctions:
 
 
 
-    def one_file_training_data(self, recording, single_peak_length, peaks, header_file, remove_baseline=False):
+    def one_file_training_data(self, recording, signals, infos, rates, single_peak_length, peaks, header_file, remove_baseline=False):
         logger.debug("Entering one_file_training_data")
-        signal = recording
-        if remove_baseline:
-            signal, _ = baseline_wandering_removal(recording, 'sym10', 9)
 
         x = []
         coeffs = []
         horizon = self.window_size // 2
         for i, peak in enumerate(peaks):
             if peak < horizon:
-                signal_local = signal[:, 0: single_peak_length]
+                signal_local = recording[:, 0: single_peak_length]
                 wavelet_features = self.get_wavelet_features(signal_local,'db2')
-            elif peak + horizon < len(signal[0]):
-                signal_local = signal[:, peak-horizon: peak + horizon]
+            elif peak + horizon < len(recording[0]):
+                signal_local = recording[:, peak-horizon: peak + horizon]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
@@ -235,11 +235,11 @@ class UtilityFunctions:
         x = np.array(x, dtype=np.float64)
         coeffs = np.asarray(coeffs,  dtype=np.float64)
 
-        rr_features = np.zeros((x.shape[0], signal.shape[0], self.rr_features_size), dtype=np.float64)
+        rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
 
 
         try:
-            domain_knowledge_analysis = analyse_recording(recording, pantompkins_peaks=peaks)
+            domain_knowledge_analysis = analyse_recording(recordingm signals, infos, rates, pantompkins_peaks=peaks)
             rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
@@ -281,7 +281,7 @@ class UtilityFunctions:
 
 
 
-    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None, remove_baseline=False):
+    def create_hdf5_db(self, num_recordings, num_classes, header_files, recording_files, classes, leads, classes_numbers, isTraining=0, selected_classes=[], filename=None, remove_baseline=False, sampling_rate=500):
         group = None
         if isTraining == 1:
             group = 'training'
@@ -316,9 +316,12 @@ class UtilityFunctions:
                                          chunks=(1, len(leads), 185))
     
             counter = 0
-
+            avg_processing_times = []
             for i in num_recordings:
                 logger.debug(f"Iterating over {i} out of {num_recordings} files")
+                if len(avg_processing_time) > 0 and len(avg_processing_times) % 500 == 0:
+                    logger.info(f"AVG Processing time of a single file: {np.mean(avg_processing_times)}")
+
                 counter += 1
                 # Load header and recording.
                 header = load_header(header_files[i])
@@ -348,18 +351,51 @@ class UtilityFunctions:
                 
                 freq = get_frequency(header)
                 logger.debug(f"Frequency: {freq}")
-                if freq != float(500):
+                if freq != float(sampling_rate):
                     recording_full = self.equalize_signal_frequency(freq, recording_full)
     
                 if recording_full.max() == 0 and recording_full.min() == 0:
                     logging.debug("Skipping as recording full seems to be none or empty")
                     continue
-                
-                peaks = pan_tompkins_detector(500, recording_full[0])
-                logger.debug(f"Peaks: {peaks}") 
+               
+                processing_steps = ["remove_baseline", "denoise", "get_peaks", "extract_domain_knowledge"]
+                start_processing = time.time()
+
+                if remove_baseline:
+                    recording, _ = baseline_wandering_removal(recording, 'sym10', 9)
+
+                signals = {}
+                infos = {}
+                rpeaks_avg = []
+                rates = {}
+                wavelet="db6"
+                for lead_name, idx in leads_idxs.items(): 
+                    if denoise_signal:
+                        coeffs = pywt.wavedec(data=recording[idx], wavelet=wavelet, level=3)
+                        recording[idx] = wavelet_threshold(recording[idx], coeffs, wavelet)
+                    
+                    rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method="pantompkins1985") 
+                    signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
+                    #peaks = pan_tompkins_detector(500, recording_full[0])
+                    signals[lead_name] = signal
+                    infos[lead_name] = info
+                    rpeaks_avg.append(rpeaks)
+
+                    rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=500)
+
+                rpeaks_avg = np.array(rpeaks_avg)
+
+                peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0)
+
+                logger.debug(f"Peaks: {peaks}")
+
     
-                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, self.window_size,
+                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, signals, infos, rates, self.window_size,
                                                                                            peaks, header_files[i], remove_baseline)
+                end_processing = time.time()
+                avg_processing_times.append(end_processing - start_processing)
+
+
                 logger.debug(f"RR Features: {rr_features.shape}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features.shape}")
     
                 local_label = np.zeros((num_classes,), dtype=bool)

@@ -277,14 +277,15 @@ def cleanse_data_mean(array):
 
 
 
-def analyse_recording(rec, pantompkins_peaks=None, label=None, leads_idxs=leads_idx, sampling_rate=500):
+def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label=None, leads_idxs=leads_idx, sampling_rate=500):
     logger.debug("Entering analysed_results")
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():
-        signal, info =nk.ecg_process(rec[idx], sampling_rate=sampling_rate)
+        signal = signals[lead_name]
+        info = infos[lead_name] #nk.ecg_process(rec[idx], sampling_rate=sampling_rate)
         bpm = -1
-        if 'ECG_Rate' in signal:
-            bpm = cleanse_data_mean(signal['ECG_Rate'])
+        if lead_name in rates:
+            bpm = cleanse_data_mean(rates[lead_name])
         missing_qrs = has_missing_qrs(signal, info)
         missing_p = has_missing_p(signal, info)
         qrs_duration = cleanse_data_mean(get_QRS_duration(signal, info))
