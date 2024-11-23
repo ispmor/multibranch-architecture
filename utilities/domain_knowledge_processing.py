@@ -50,7 +50,7 @@ def get_p_complex(signals, info):
         if np.isnan([p_on, p, p_off]).any():
             continue
 
-        p_complex = [signals.iloc[p_on]['ECG_Raw'], signals.iloc[p]['ECG_Raw'], signals.iloc[p_off]['ECG_Raw']]
+        p_complex = [signals[p_on], signals[p], signals[p_off]]
 
         if np.isnan(p_complex).any():
             continue
@@ -95,7 +95,7 @@ def get_heart_axis(leadI_QRS, leadaVF_QRS):
 
 
 
-def get_QRS_from_lead(signals, info):
+def get_QRS_from_lead(signal, info):
     num_peaks = len(info['ECG_R_Peaks'])
     result = []
     for i in range(num_peaks):
@@ -107,7 +107,7 @@ def get_QRS_from_lead(signals, info):
         if np.isnan(QRS_ts).any():
             continue
 
-        QRS = [signals.iloc[Q]['ECG_Raw'], signals.iloc[R]['ECG_Raw'], signals.iloc[S]['ECG_Raw']]
+        QRS = [signal[Q], signal[R], signal[S]]
         if np.isnan(QRS).any():
             continue
         else:
@@ -216,7 +216,7 @@ def get_0_crossings(biorcD, beg_qrs, end_qrs, threshold=15, show=False, **kwargs
 
 def analyse_notched_signal(signal, info, recording, threshold=1.5, peaks=None, **kwargs):
     #list_of_qrs = get_QRS_from_lead(signal, info) #get_qrs_beginning_and_end(signal['ECG_Raw'], **kwargs)
-    N = len(signal['ECG_Raw'])
+    N = len(recording)
     beginning_key = 'ECG_Q_Peaks'
     ending_key = 'ECG_S_Peaks'
     window = None
@@ -295,7 +295,7 @@ def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label
         notched = analyse_notched_signal(signal,info, rec[idx], peaks=pantompkins_peaks)
 
         analysed_results[lead_name]={
-            'signal': signal,
+            'signal': rec[idx],
             'info': info,
             'bpm': bpm,
             'missing_qrs':missing_qrs,
