@@ -256,7 +256,7 @@ class LSTM_ECG(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
-                 device
+                 device,
                  model_type='alpha',
                  classes=[]):
         super(LSTM_ECG, self).__init__()
