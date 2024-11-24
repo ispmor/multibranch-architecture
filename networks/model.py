@@ -208,7 +208,7 @@ class Nbeats_beta(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
-                 device=device,
+                 device,
                  classes=[],
                  model_type='beta'):
         super(Nbeats_beta, self).__init__()
