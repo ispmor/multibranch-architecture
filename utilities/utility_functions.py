@@ -255,7 +255,7 @@ class UtilityFunctions:
     def get_wavelet_features(self, signal, wavelet):
         #TODO WHy do I downsample the signal ?!
         a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], wavelet, level=4)
-        return np.hstack((a4, d4, d3, d2, d1))
+        return np.nan_to_num(np.hstack((a4, d4, d3, d2, d1)))
 
 
     @staticmethod
@@ -313,7 +313,7 @@ class UtilityFunctions:
         peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
         logger.debug(f"Peaks: {peaks}")
 
-        return (signals, infos, peaks, rates)
+        return (recording, signals, infos, peaks, rates)
 
 
     def load_and_equalize_recording(self, recording_file, header, header_file, sampling_rate, leads):
@@ -401,12 +401,12 @@ class UtilityFunctions:
 
                 start_processing = time.time()
 
-                signals, infos, peaks, rates = self.preprocess_recording(recording_full, header, remove_baseline)
+                recording, signals, infos, peaks, rates = self.preprocess_recording(recording_full, header, remove_baseline)
 
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
 
-                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording_full, signals, infos, rates, self.window_size,
+                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size,
                                                                                            peaks, header_files[i], remove_baseline)
                 end_processing = time.time()
                 avg_processing_times.append(end_processing - start_processing)
