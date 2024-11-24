@@ -40,7 +40,7 @@ remove_baseline = args.remove_baseline
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
 
-def task_prepare_datasets(params)
+def task_prepare_datasets(params):
     leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
 
 def main():
