@@ -42,6 +42,8 @@ device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cp
 
 def task_prepare_datasets(params):
     leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
+    utilityFunctions = UtilityFunctions(device, datasets_target_dir)
+    utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
     alpha_config = BranchConfig("LSTM", 7, 2, window_size)
@@ -80,13 +82,24 @@ def main():
     fold_splits = kfold.split(list(range(num_recordings)))
     logger.debug(fold_splits)
 
+
+    twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
+    
+
+    params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in enumerate(fold_splits)]
+
+    with ThreadPool() as pool:
+        pool.map(task_prepare_datasets, params)
+
+
+
     for leads in utilityFunctions.leads_set:
         logger.info(f"Preparing database for {leads} leads.")
         leads_idx = [utilityFunctions.twelve_leads.index(i) for i in leads]
 
         for fold, (data_training_full, data_test) in enumerate(fold_splits):
             logger.info(f"Beginning {fold} fold processing")
-            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
+            #utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
             weights = utilityFunctions.load_training_weights_for_fold(fold)
 
