@@ -303,7 +303,7 @@ class UtilityFunctions:
 
             signals[lead_name] = signal
             infos[lead_name] = info
-            if rpeaks is not None:
+            if rpeaks is not None and info is not None:
                 rpeaks_avg.append(rpeaks['ECG_R_Peaks'])
                 info['ECG_R_Peaks'] = rpeaks['ECG_R_Peaks']
                 rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
