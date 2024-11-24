@@ -1038,14 +1038,3 @@ class LightningBlendMLP(L.LightningModule):
         return optimizer
 
 
-evice)
-        loss = self.criterion(forecast, y)
-        self.log("train_loss", loss)
-        return loss
-
-
-    def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
-
-
