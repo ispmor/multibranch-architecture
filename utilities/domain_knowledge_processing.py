@@ -283,7 +283,7 @@ def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label
     for lead_name, idx in leads_idxs.items():
         signal = signals[lead_name]
         info = infos[lead_name] #nk.ecg_process(rec[idx], sampling_rate=sampling_rate)
-        if signl is None or info is None:
+        if signal is None or info is None:
             analysed_results[lead_name]={
                 'signal': rec[idx],
                 'info': None,
