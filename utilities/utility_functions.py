@@ -541,7 +541,7 @@ class UtilityFunctions:
     def load_model(self, filename, alpha_config, beta_config, classes, leads, device):
         torch.cuda.set_device(0)
         checkpoint = torch.load(filename, map_location=torch.device(device))
-        model = get_BlendMLP(alpha_config, beta_config, classes, leads=leads)
+        model = get_BlendMLP(alpha_config, beta_config, classes,device, leads=leads)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
         model.cuda()

@@ -1,5 +1,4 @@
 from datetime import datetime
-from networks.model import LSTM_ECG
 from training.network_trainer import NetworkTrainer, TrainingConfig
 from utilities import *
 from networks.model import *
@@ -39,6 +38,10 @@ debug_mode = args.debug
 remove_baseline = args.remove_baseline
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
+
+
+def task_prepare_datasets(params)
+    leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
 
 def main():
     alpha_config = BranchConfig("LSTM", 7, 2, window_size)
