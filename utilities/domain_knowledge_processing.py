@@ -283,6 +283,21 @@ def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label
     for lead_name, idx in leads_idxs.items():
         signal = signals[lead_name]
         info = infos[lead_name] #nk.ecg_process(rec[idx], sampling_rate=sampling_rate)
+        if signl is None or info is None:
+            analysed_results[lead_name]={
+                'signal': rec[idx],
+                'info': None,
+                'bpm': -1,
+                'missing_qrs': -1,
+                'missing_p': -1,
+                'qrs_duration': -1,
+                's_duration': -1,
+                'rhythm': None,
+                # 'has_rsr': rsr,
+                'notched': -1,
+            }
+            continue
+
         bpm = -1
         if lead_name in rates:
             bpm = cleanse_data_mean(rates[lead_name])
@@ -309,10 +324,10 @@ def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label
 
     heart_axis = None
     rhythm_origin = None
-    if 'I' in leads_idx:
-        if 'II' in leads_idx:
+    if 'I' in leads_idx and analysed_results['I']['info'] is not None:
+        if 'II' in leads_idx and analysed_results['II']['info'] is not None:
             rhythm_origin = get_rhythm_origin(analysed_results['I']['signal'], analysed_results['I']['info'], analysed_results['II']['signal'], analysed_results['II']['info'])
-        if 'aVF' in leads_idx:
+        if 'aVF' in leads_idx and analysed_results['aVF']['info'] is not None:
             if 'II' not in leads_idx:
                 rhythm_origin = get_rhythm_origin(analysed_results['I']['signal'], analysed_results['I']['info'], analysed_results['aVF']['signal'], analysed_results['aVF']['info'])
             heart_axis = get_heart_axis(get_QRS_from_lead(analysed_results['I']['signal'], analysed_results['I']['info']), get_QRS_from_lead(analysed_results['aVF']['signal'], analysed_results['aVF']['info']))

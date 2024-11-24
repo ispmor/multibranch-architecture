@@ -24,6 +24,7 @@ class NBeatsNet(nn.Module):
                  thetas_dims=(4, 8),
                  share_weights_in_stack=False,
                  hidden_layer_units=17,
+                 device=None,
                  classes=[],
                  model_type='alpha'):
         super(NBeatsNet, self).__init__()
@@ -37,16 +38,17 @@ class NBeatsNet(nn.Module):
         self.stack_types = stack_types
         self.stacks = []
         self.thetas_dim = thetas_dims
+        self.device = device
         self.parameters = []
 
         if model_type == 'alpha':
-            linear_input_size = 353 * input_size
+            linear_input_size = 363 * input_size
         else:
             self.linea_multiplier = input_size
             if input_size > 6:
                 self.linea_multiplier = 6
             linear_input_size = input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier
-        self.fc_linear = nn.Linear(353 * len(classes), len(classes))
+        self.fc_linear = nn.Linear(363 * len(classes), len(classes))
 
         print(f'| N-Beats')
 
@@ -75,7 +77,7 @@ class NBeatsNet(nn.Module):
         return GenericBlock
 
     def forward(self, backcast):
-        forecast = torch.zeros(size=backcast.shape).cuda()
+        forecast = torch.zeros(size=backcast.shape).cuda(self.device)
         for stack_id in range(len(self.stacks)):
             for block_id in range(len(self.stacks[stack_id])):
                 b, f = self.stacks[stack_id][block_id](backcast)
@@ -174,6 +176,7 @@ class Nbeats_alpha(nn.Module):
                                        target_size=num_classes,
                                        input_size=input_size,
                                        thetas_dims=(32, 32),
+                                       device=device,
                                        classes=self.classes,
                                        hidden_layer_units=self.hidden_size)
 
@@ -182,6 +185,7 @@ class Nbeats_alpha(nn.Module):
                                        target_size=num_classes,
                                        input_size=input_size,
                                        thetas_dims=(32, 32),
+                                       device=device,
                                        classes=self.classes,
                                        hidden_layer_units=hidden_size)
 

@@ -299,13 +299,15 @@ class UtilityFunctions:
             except Exception as e:
                 logger.warn(e)
                 logger.warn(f"Comming from: \n{header}")
-                return (None, None, None, None)
+                #return (None, None, None, None)
 
             signals[lead_name] = signal
             infos[lead_name] = info
-            rpeaks_avg.append(rpeaks['ECG_R_Peaks'])
-            info['ECG_R_Peaks'] = rpeaks['ECG_R_Peaks']
-            rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
+            if rpeaks is not None:
+                rpeaks_avg.append(rpeaks['ECG_R_Peaks'])
+                info['ECG_R_Peaks'] = rpeaks['ECG_R_Peaks']
+                rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
+
         min_length = min([len(x) for x in rpeaks_avg])
         rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
         peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
@@ -539,12 +541,11 @@ class UtilityFunctions:
 
     #TODO zdefiniować mądrzejsze ogarnianie device
     def load_model(self, filename, alpha_config, beta_config, classes, leads, device):
-        torch.cuda.set_device(0)
         checkpoint = torch.load(filename, map_location=torch.device(device))
         model = get_BlendMLP(alpha_config, beta_config, classes,device, leads=leads)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
-        model.cuda()
+        model.cuda(device)
         logger.info(f'Restored checkpoint from {filename}.') 
         return model
     
