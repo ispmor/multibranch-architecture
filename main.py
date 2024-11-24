@@ -50,7 +50,7 @@ def main():
     execution_time=datetime.now()
     date = execution_time.date()
     time = execution_time.time()
-    log_filename =f'logs/{date}/{time}.log'
+    log_filename =f'logs/{date}/{name}_{time}.log'
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
     logging_level = logging.INFO
     if debug_mode:
@@ -97,7 +97,7 @@ def main():
                                              data_cache_size=4, transform=None, leads=leads_idx)
             logger.info("Loaded validation dataset")
 
-            blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes, leads=leads)
+            blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads)
             training_config = TrainingConfig(batch_size=1500,
                                      n_epochs_stop=6,
                                      num_epochs=25,

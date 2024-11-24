@@ -154,6 +154,7 @@ class Nbeats_alpha(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device,
                  classes=[],
                  model_type='alpha'):
         super(Nbeats_alpha, self).__init__()
@@ -164,6 +165,7 @@ class Nbeats_alpha(nn.Module):
         self.hidden_size = hidden_size  # hidden state
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
+        self.device=device
         self.classes = classes
         self.relu = nn.ReLU()
 
@@ -206,6 +208,7 @@ class Nbeats_beta(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device=device,
                  classes=[],
                  model_type='beta'):
         super(Nbeats_beta, self).__init__()
@@ -216,6 +219,7 @@ class Nbeats_beta(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device = device
         self.relu = nn.ReLU()
 
         self.linea_multiplier = input_size
@@ -252,6 +256,7 @@ class LSTM_ECG(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device
                  model_type='alpha',
                  classes=[]):
         super(LSTM_ECG, self).__init__()
@@ -263,6 +268,7 @@ class LSTM_ECG(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device = device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
         print(f'| LSTM_ECG')
@@ -295,16 +301,16 @@ class LSTM_ECG(nn.Module):
         if self.model_type == 'alpha':
             h_0 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
-                            device=torch.device('cuda:0')))  # hidden state
+                            device=self.device))  # hidden state
             c_0 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
-                            device=torch.device('cuda:0')))  # internal state
+                            device=self.device))  # internal state
             h_1 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
-                            device=torch.device('cuda:0')))  # hidden state
+                            device=self.device))  # hidden state
             c_1 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
-                            device=torch.device('cuda:0')))  # internal state
+                            device=self.device))  # internal state
 
             output_alpha1, (hn_alpha1, cn) = self.lstm_alpha1(rr_x,
                                                               (h_0, c_0))  # lstm with input, hidden, and internal state
@@ -321,10 +327,10 @@ class LSTM_ECG(nn.Module):
             rr_wavelets=rr_x #as we pass only one argument which is pca vector in fact
             h_0 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_wavelets.size(0), self.hidden_size,
-                            device=torch.device('cuda:0')))  # hidden state
+                            device=self.device))  # hidden state
             c_0 = autograd.Variable(
                 torch.zeros(self.num_layers * self.when_bidirectional, rr_wavelets.size(0), self.hidden_size,
-                            device=torch.device('cuda:0')))  # internal state
+                            device=self.device))  # internal state
 
             output_beta, (hn_beta, cn) = self.lstm_alpha1(rr_wavelets, (h_0, c_0))
 
@@ -341,6 +347,7 @@ class GRU_ECG_ALPHA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device,
                  model_type='alpha',
                  classes=[]):
         super(GRU_ECG_ALPHA, self).__init__()
@@ -352,6 +359,7 @@ class GRU_ECG_ALPHA(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device=device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
         print(f'| GRU_ECG_ALPHA')
@@ -369,9 +377,9 @@ class GRU_ECG_ALPHA(nn.Module):
 
     def forward(self, rr_x, rr_wavelets):
         h_0 = autograd.Variable(torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
         h_1 = autograd.Variable(torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
 
         output_alpha1, hn_alpha1 = self.gru_alpha1(rr_x, h_0)  # lstm with input, hidden, and internal state
         output_alpha2, hn_alpha2 = self.gru_alpha2(rr_wavelets, h_1)  # lstm with input, hidden, and internal state
@@ -391,6 +399,7 @@ class GRU_ECG_BETA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device,
                  model_type='alpha',
                  classes=[]):
         super(GRU_ECG_BETA, self).__init__()
@@ -402,6 +411,7 @@ class GRU_ECG_BETA(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device=device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
         print(f'| GRU_ECG_BETA')
@@ -425,7 +435,7 @@ class GRU_ECG_BETA(nn.Module):
     def forward(self, pca_features):
         h_0 = autograd.Variable(
             torch.zeros(self.num_layers * self.when_bidirectional, pca_features.size(0), self.hidden_size,
-                        device=torch.device('cuda:0')))  # hidden state
+                        device=self.device))  # hidden state
         output_beta, hn_beta = self.gru_beta(pca_features, h_0)
 
         # out = torch.squeeze(output_beta)
@@ -495,6 +505,7 @@ class LSTMPeephole_ALPHA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device,
                  model_type='alpha',
                  classes=[]):
         super(LSTMPeephole_ALPHA, self).__init__()
@@ -506,6 +517,7 @@ class LSTMPeephole_ALPHA(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device=device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
 
@@ -522,13 +534,13 @@ class LSTMPeephole_ALPHA(nn.Module):
 
     def forward(self, rr_x, rr_wavelets):
         h_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
         c_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # internal state
+                                            device=self.device))  # internal state
         h_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
         c_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # internal state
+                                            device=self.device))  # internal state
 
 
         oa1, _ = self.lstmpeephole_alpha1(rr_x,
@@ -553,6 +565,7 @@ class LSTMPeephole_BETA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device,
                  model_type='beta',
                  classes=[]):
         super(LSTMPeephole_BETA, self).__init__()
@@ -565,6 +578,7 @@ class LSTMPeephole_BETA(nn.Module):
         self.model_type = model_type
         self.classes = classes
         self.sigmoid = nn.Sigmoid()
+        self.device=device
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
 
         print(f'| LSTM_PEEPHOLE_BETA')
@@ -587,10 +601,10 @@ class LSTMPeephole_BETA(nn.Module):
 
     def forward(self, pca_features):
         h_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
 
         c_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
 
 
         oa1, _  = self.lstmpeephole_beta(pca_features,
@@ -667,6 +681,7 @@ class CustomLSTMPeephole_ALPHA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device
                  model_type='alpha',
                  classes=[]):
         super(CustomLSTMPeephole_ALPHA, self).__init__()
@@ -678,6 +693,7 @@ class CustomLSTMPeephole_ALPHA(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device = device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
 
@@ -694,13 +710,13 @@ class CustomLSTMPeephole_ALPHA(nn.Module):
 
     def forward(self, rr_x, rr_wavelets):
         h_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
         c_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # internal state
+                                            device=self.device))  # internal state
         h_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
         c_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # internal state
+                                            device=self.device))  # internal state
 
         output = []
         oa1, (h_0, c_0) = self.lstmpeephole_alpha1(rr_x, (h_0, c_0))  # lstm with input, hidden, and internal state
@@ -723,6 +739,7 @@ class CustomLSTMPeephole_BETA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
+                 device,
                  model_type='beta',
                  classes=[]):
         super(CustomLSTMPeephole_BETA, self).__init__()
@@ -734,6 +751,7 @@ class CustomLSTMPeephole_BETA(nn.Module):
         self.seq_length = seq_length  # sequence length
         self.model_type = model_type
         self.classes = classes
+        self.device = device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
 
@@ -755,10 +773,10 @@ class CustomLSTMPeephole_BETA(nn.Module):
 
     def forward(self, pca_features):
         h_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
 
         c_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
-                                            device=torch.device('cuda:0')))  # hidden state
+                                            device=self.device))  # hidden state
 
         oa1, (h_0, c_0) = self.lstmpeephole_beta(pca_features, (h_0, c_0))  # lstm with input, hidden, and internal state
 
@@ -789,7 +807,7 @@ class BlendMLP(nn.Module):
             return x1
         return x2
 
-def get_single_network(network, hs, layers, leads, selected_classes, single_peak_length, as_branch):
+def get_single_network(network, hs, layers, leads, selected_classes, single_peak_length, as_branch, device):
     torch.manual_seed(17)
     if network == "GRU":
         if as_branch == "alpha":
@@ -798,6 +816,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                     hidden_size=hs,
                     num_layers=layers,
                     seq_length=single_peak_length,
+                    device=device,
                     model_type=as_branch,
                     classes=selected_classes)
         else:
@@ -806,6 +825,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         hidden_size=hs,
                         num_layers=layers,
                         seq_length=single_peak_length,
+                        device=device,
                         model_type=as_branch,
                         classes=selected_classes)
     
@@ -815,6 +835,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
             hidden_size=hs,
             num_layers=layers,
             seq_length=single_peak_length,
+            device=device,
             model_type=as_branch,
             classes=selected_classes)
     
@@ -825,6 +846,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                     hidden_size=hs,
                     num_layers=layers,
                     seq_length=single_peak_length,
+                    device=device,
                     model_type=as_branch,
                     classes=selected_classes)
         else:
@@ -833,6 +855,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         hidden_size=hs,
                         num_layers=layers,
                         seq_length=single_peak_length,
+                        device=device,
                         model_type=as_branch,
                         classes=selected_classes)
 
@@ -843,6 +866,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         hidden_size=hs,
                         num_layers=layers,
                         seq_length=353,
+                        device=device,
                         model_type=as_branch,
                         classes=selected_classes)
         else:
@@ -850,6 +874,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                             num_classes=len(selected_classes),
                             hidden_size=hs,
                             seq_length=353,
+                            device=device,
                             model_type=as_branch,
                             classes=selected_classes,
                             num_layers=layers)
@@ -970,9 +995,9 @@ class BranchConfig:
 
 
 
-def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes: list, leads: list) -> BlendMLP:
-    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, "alpha")
-    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, "beta")
+def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes: list, device, leads: list) -> BlendMLP:
+    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, "alpha", device)
+    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, "beta", device)
 
     return BlendMLP(alpha_branch, beta_branch, classes)
 
@@ -1003,6 +1028,17 @@ class LightningBlendMLP(L.LightningModule):
                             pca_features
                             )
         #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
+        loss = self.criterion(forecast, y)
+        self.log("train_loss", loss)
+        return loss
+
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+
+evice)
         loss = self.criterion(forecast, y)
         self.log("train_loss", loss)
         return loss
