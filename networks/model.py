@@ -681,7 +681,7 @@ class CustomLSTMPeephole_ALPHA(nn.Module):
                  hidden_size,
                  num_layers,
                  seq_length,
-                 device
+                 device,
                  model_type='alpha',
                  classes=[]):
         super(CustomLSTMPeephole_ALPHA, self).__init__()
