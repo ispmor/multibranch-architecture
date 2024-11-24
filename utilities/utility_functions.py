@@ -496,7 +496,7 @@ class UtilityFunctions:
             rr_x = torch.hstack((rr_features, x))
             rr_wavelets = torch.hstack((rr_features, wavelet_features))
     
-            pre_pca = torch.nan_to_num(torch.hstack((rr_features, x[:, ::2, :], wavelet_features)))
+            pre_pca = torch.nan_to_num(torch.hstack((rr_features, x[:, ::2, :], wavelet_features)), posinf=10000, neginf=-10000)
             pca_features = torch.pca_lowrank(pre_pca)
             pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
                                          pca_features[2].reshape(pca_features[2].shape[0], -1)))
