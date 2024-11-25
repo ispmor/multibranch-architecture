@@ -86,7 +86,7 @@ def main():
 
 
     twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
-    folds = [ (fold, (data_training_full, data_test) for fold, (data_training_full, data_test) in enumerate(fold_splits)]
+    folds = [ (fold, (data_training_full, data_test)) for fold, (data_training_full, data_test) in enumerate(fold_splits)]
 
     params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in folds]
 
