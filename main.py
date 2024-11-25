@@ -86,9 +86,9 @@ def main():
 
 
     twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
-    
+    folds = [ (fold, (data_training_full, data_test) for fold, (data_training_full, data_test) in enumerate(fold_splits)]
 
-    params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in enumerate(fold_splits)]
+    params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in folds]
 
     with ThreadPool() as pool:
         pool.map(task_prepare_datasets, params)
@@ -99,7 +99,7 @@ def main():
         logger.info(f"Preparing database for {leads} leads.")
         leads_idx = [utilityFunctions.twelve_leads.index(i) for i in leads]
 
-        for fold, (data_training_full, data_test) in enumerate(fold_splits):
+        for fold, (data_training_full, data_test) in folds:
             logger.info(f"Beginning {fold} fold processing")
             #utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
