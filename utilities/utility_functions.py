@@ -472,14 +472,14 @@ class UtilityFunctions:
 
         rr_features, x_features, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size, peaks, header)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
-        logger.debug(f"First dimension of RR_features: {rr_features[0]")
+        logger.debug(f"First dimension of RR_features: {rr_features[0]}")
         x_features = torch.Tensor(x_features)
         logger.debug(f"X_features shape from one_file_training_data: {x_features.shape}")
-        logger.debug(f"First dimension of X_features: {x_features[0]")
+        logger.debug(f"First dimension of X_features: {x_features[0]}")
         rr_features = torch.Tensor(rr_features)
         wavelet_features = torch.Tensor(wavelet_features)
         logger.debug(f"Wavelets_features from one_file_training_data: {wavelet_features.shape}")
-        logger.debug(f"First dimension of wavelets_features: {wavelet_features[0]")
+        logger.debug(f"First dimension of wavelets_features: {wavelet_features[0]}")
 
         # Predict labels and probabilities.
         if len(x_features) == 0:
