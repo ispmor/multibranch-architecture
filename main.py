@@ -90,8 +90,8 @@ def main():
 
     params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in folds]
 
-    with ThreadPool() as pool:
-        pool.map(task_prepare_datasets, params)
+    #with ThreadPool() as pool:
+    #    pool.map(task_prepare_datasets, params)
 
 
 
@@ -101,7 +101,7 @@ def main():
 
         for fold, (data_training_full, data_test) in folds:
             logger.info(f"Beginning {fold} fold processing")
-            #utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
+            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
             weights = utilityFunctions.load_training_weights_for_fold(fold)
 
