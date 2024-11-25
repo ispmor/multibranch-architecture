@@ -11,11 +11,11 @@ leads_idx = {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':
 
 def leading_rythm(bpm):
     if(bpm < 50):
-       return -1
+       return 0
     elif (50< bpm < 100):
-        return 0
-    else:
         return 1
+    else:
+        return 2
 
 
 
@@ -292,7 +292,7 @@ def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label
                 'missing_p': -1,
                 'qrs_duration': -1,
                 's_duration': -1,
-                'rhythm': None,
+                'rhythm': -1,
                 # 'has_rsr': rsr,
                 'notched': -1,
             }

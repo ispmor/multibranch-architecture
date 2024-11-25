@@ -230,12 +230,12 @@ class UtilityFunctions:
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
-            
+            logger.debug("Adding to X_features: {signal_local}")
             x.append(signal_local)
             coeffs.append(wavelet_features)
 
         x = np.array(x, dtype=np.float64)
-        coeffs = np.asarray(coeffs,  dtype=np.float64)
+        coeffs = np.nan_to_num(np.asarray(coeffs,  dtype=np.float64))
 
         rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
 
@@ -255,7 +255,7 @@ class UtilityFunctions:
     def get_wavelet_features(self, signal, wavelet):
         #TODO WHy do I downsample the signal ?!
         a4, d4, d3, d2, d1 = wavedec(signal[:, ::2], wavelet, level=4)
-        return np.nan_to_num(np.hstack((a4, d4, d3, d2, d1)))
+        return np.hstack((a4, d4, d3, d2, d1))
 
 
     @staticmethod
@@ -308,6 +308,7 @@ class UtilityFunctions:
                 info['ECG_R_Peaks'] = rpeaks['ECG_R_Peaks']
                 rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
 
+        recording = np.nan_to_num(recording)
         min_length = min([len(x) for x in rpeaks_avg])
         rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
         peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
@@ -499,7 +500,7 @@ class UtilityFunctions:
             rr_x = torch.hstack((rr_features, x))
             rr_wavelets = torch.hstack((rr_features, wavelet_features))
     
-            pre_pca = torch.nan_to_num(torch.hstack((rr_features, x[:, ::2, :], wavelet_features)), posinf=10, neginf=-10)
+            pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
             pca_features = torch.pca_lowrank(pre_pca)
             pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
                                          pca_features[2].reshape(pca_features[2].shape[0], -1)))
