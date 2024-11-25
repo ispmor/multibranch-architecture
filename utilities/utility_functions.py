@@ -472,11 +472,14 @@ class UtilityFunctions:
 
         rr_features, x_features, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size, peaks, header)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
+        logger.debug(f"First dimension of RR_features: {rr_features[0]")
         x_features = torch.Tensor(x_features)
         logger.debug(f"X_features shape from one_file_training_data: {x_features.shape}")
+        logger.debug(f"First dimension of X_features: {x_features[0]")
         rr_features = torch.Tensor(rr_features)
         wavelet_features = torch.Tensor(wavelet_features)
         logger.debug(f"Wavelets_features from one_file_training_data: {wavelet_features.shape}")
+        logger.debug(f"First dimension of wavelets_features: {wavelet_features[0]")
 
         # Predict labels and probabilities.
         if len(x_features) == 0:
@@ -496,7 +499,7 @@ class UtilityFunctions:
             rr_x = torch.hstack((rr_features, x))
             rr_wavelets = torch.hstack((rr_features, wavelet_features))
     
-            pre_pca = torch.nan_to_num(torch.hstack((rr_features, x[:, ::2, :], wavelet_features)), posinf=10000, neginf=-10000)
+            pre_pca = torch.nan_to_num(torch.hstack((rr_features, x[:, ::2, :], wavelet_features)), posinf=10, neginf=-10)
             pca_features = torch.pca_lowrank(pre_pca)
             pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
                                          pca_features[2].reshape(pca_features[2].shape[0], -1)))
@@ -567,6 +570,7 @@ class UtilityFunctions:
             leads_local = get_leads(header)
             recording = load_recording(recording_files[header_index])
             c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording)
+            logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")
         logger.info(f"#####   Fold={fold}, Leads: {len(leads)}")
         logger.info("########################################################")
