@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(prog='PHD Network Trainer',
 parser.add_argument("-i", "--input", help = "Input directory")
 parser.add_argument("-t", "--target", help = "Target directory for H5 Datasets", default="h5_datasets")
 parser.add_argument("-g", "--gpu", help = "GPU number", default="1")
-parser.add_argument("-f", "--fold", help = "FOLD numberto be processed", default="*")
+parser.add_argument("-f", "--fold", help = "FOLD numberto be processed", default="")
 parser.add_argument("-m", "--model", help = "Models directory")
 parser.add_argument("-w", "--window_size", help = "Window size for peak analysis", default=350, type=int)
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
@@ -93,7 +93,7 @@ def main():
 
     params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in folds]
 
-    if fold_to_process != "*":
+    if fold_to_process != "*" and fold_to_process != "":
 
         logger.info(f"Preparing database for FOLD: {fold_to_process}")
         task_prepare_datasets(params[int(fold_to_process)])
@@ -108,7 +108,8 @@ def main():
 
         for fold, (data_training_full, data_test) in folds:
             logger.info(f"Beginning {fold} fold processing")
-            utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
+            if fold_to_process == "*":
+                utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
             weights = utilityFunctions.load_training_weights_for_fold(fold)
 
