@@ -8,7 +8,6 @@ from utilities.utility_functions import UtilityFunctions
 from sklearn.model_selection import KFold
 import argparse
 from multiprocessing.pool import ThreadPool
-from numba import jit
 
 
 
@@ -44,7 +43,6 @@ remove_baseline = args.remove_baseline
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
 
-@jit(nogil=True, parallel=True, fastmath=True)
 def task_prepare_datasets(params):
     leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
     utilityFunctions = UtilityFunctions(device, datasets_target_dir)
