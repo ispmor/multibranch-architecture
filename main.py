@@ -95,7 +95,7 @@ def main():
 
     if fold_to_process != "*":
 
-        logger.info(f"Preparing database for FOLD: {fold_to_process} and {leads} leads.")
+        logger.info(f"Preparing database for FOLD: {fold_to_process}")
         task_prepare_datasets(params[int(fold_to_process)])
         logger.info(f"Finished processing {fold_to_process}")
         return
