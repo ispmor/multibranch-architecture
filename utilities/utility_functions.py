@@ -530,6 +530,15 @@ class UtilityFunctions:
         logger.debug(f"Loaded list of weights: {result}")
         return result
 
+
+    def load_test_headers_and_recordings(self, fold, leads):
+        test_filename = self.test_filename.format(leads,fold)
+        with open(f"{test_filename}_header_recording_files.json", 'r') as f:
+            loaded_dict = json.load(f)
+            return (loaded_dict['header_files'], loaded_dict['recording_files'])
+
+
+
     def load_training_weights(self, fold):
         data = []
         for i in range(fold-1):
@@ -555,21 +564,19 @@ class UtilityFunctions:
     
 
 
-    def test_network(self, model, weights_file, data_test, header_files, recording_files, fold, leads, num_classes=26  )-> ResultHandler:
+    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, num_classes=26  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
-        scalar_outputs = np.ndarray((len(data_test), num_classes))
-        binary_outputs = [[] for i in range(len(data_test))]
-        c = np.ndarray((len(data_test), num_classes))
-        times = np.zeros(len(data_test))
-        tmp_header_files = [header_files[i] for i in data_test]
-        labels = load_labels(tmp_header_files, classes_eval)
+        scalar_outputs = np.ndarray((len(header_files), num_classes))
+        binary_outputs = [[] for _ in range(len(header_files))]
+        c = np.ndarray((len(header_files), num_classes))
+        times = np.zeros(len(header_files))
+        labels = load_labels(header_files, classes_eval)
         logger.debug(f"labels: {labels}")
         logger.debug(f"Labels shape: {labels.shape}")
         logger.debug(f"Scalar outputs shape: {labels.shape}")
-        for i, header_index in enumerate(data_test):
-            header = load_header(header_files[header_index])
-            leads_local = get_leads(header)
-            recording = load_recording(recording_files[header_index])
+        for i,header_filename in enumerate(header_files):
+            header = load_header(header_filename)
+            recording = load_recording(recording_files[i])
             c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording)
             logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")

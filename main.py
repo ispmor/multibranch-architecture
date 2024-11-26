@@ -144,7 +144,9 @@ def main():
             trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads, device)
             logger.info(f"Loaded model: {trained_model}")
 
-            results = utilityFunctions.test_network(trained_model,"weights_eval.csv", data_test, header_files, recording_files, fold, leads)
+            test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads)
+
+            results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads)
 
             logger.info("Saving results to json file")
             results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
