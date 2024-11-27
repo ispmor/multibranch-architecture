@@ -309,12 +309,15 @@ class UtilityFunctions:
                 rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
 
         recording = np.nan_to_num(recording)
-        min_length = min([len(x) for x in rpeaks_avg])
-        rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
-        peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
-        logger.debug(f"Peaks: {peaks}")
+        if len(rpeaks_avg) > 0:
+            min_length = min([len(x) for x in rpeaks_avg])
+            rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
+            peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
+            logger.debug(f"Peaks: {peaks}")
 
-        return (recording, signals, infos, peaks, rates)
+            return (recording, signals, infos, peaks, rates)
+        else:
+            return (recording, signals, infos, None, None)
 
 
     def load_and_equalize_recording(self, recording_file, header, header_file, sampling_rate, leads):
