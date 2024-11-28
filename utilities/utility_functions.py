@@ -464,7 +464,7 @@ class UtilityFunctions:
         return classes_numbers
 
 
-    def run_model(self, model: BlendMLP, header, recording):
+    def run_model(self, model: BlendMLP, header, recording, remove_baseline):
         classes = model.classes
         leads = model.leads
 
@@ -473,7 +473,7 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header,)
+        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header, remove_baseline)
         if signals is None or infos is None or peaks is None or rates is None:
             labels = np.zeros(len(classes))
             probabilities_mean = np.zeros(len(classes))
