@@ -113,7 +113,7 @@ def main():
 
 
     logger.info(f"Preparing database for {leads_dict[selected_leads_flag]} leads.")
-    leads_idx = utilityFunctions.leads_idxs_dict[selected_leads_flag].values() #[utilityFunctions.twelve_leads.index(i) leads_idxs_dictfor i in leads]
+    leads_idx = utility_functions.leads_idxs_dict[selected_leads_flag].values() #[utilityFunctions.twelve_leads.index(i) leads_idxs_dictfor i in leads]
     for fold, (data_training_full, data_test) in folds:
         logger.info(f"Beginning {fold} fold processing")
         if fold_to_process == "*":
