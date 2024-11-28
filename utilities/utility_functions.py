@@ -26,6 +26,13 @@ logger = logging.getLogger(__name__)
 thrash_data_dir="../data/irrelevant"
 
 leads_idxs = {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':7, 'V3':8, 'V4':9, 'V5':10, 'V6':11}
+leads_idxs_dict = {
+        12: {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':7, 'V3':8, 'V4':9, 'V5':10, 'V6':11},
+        6: {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5},
+        4: {'I': 0, 'II': 1, 'III':2, 'aVF':5},
+        3: {'I': 0, 'II': 1, 'aVF':5},
+        2: {'I': 0, 'II':1}
+        } #we should use aVF instead of II in 2 leads example
 
 
 
@@ -130,7 +137,7 @@ class UtilityFunctions:
 
         if not os.path.isfile(training_filename):  # _{len(leads)}_training.h5'):
             logger.info(f"{training_filename} not found, creating database")
-            local_training_counts = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+            local_training_counts = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, leads,
                                classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_filename, remove_baseline=remove_baseline)
             self.add_classes_counts(local_training_counts)
             sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
@@ -142,14 +149,14 @@ class UtilityFunctions:
 
         if not os.path.isfile(validation_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{validation_filename} not found, creating database")
-            local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+            local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename, remove_baseline=remove_baseline)
             self.add_classes_counts(local_validation_counts)
             save_headers_recordings_to_json(f"{validation_filename}_header_recording_files.json", header_files, recording_files, data_validation) 
 
         if not os.path.isfile(test_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{test_filename} not found, creating database")
-            local_test_counts = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, self.twelve_leads,
+            local_test_counts = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename, remove_baseline=remove_baseline)
             
             self.add_classes_counts(local_test_counts)
@@ -213,7 +220,7 @@ class UtilityFunctions:
 
 
 
-    def one_file_training_data(self, recording, signals, infos, rates, single_peak_length, peaks, header_file, remove_baseline=False):
+    def one_file_training_data(self, recording, signals, infos, rates, single_peak_length, peaks, header_file, leads, remove_baseline=False):
         logger.debug("Entering one_file_training_data")
         logger.debug(f"Recording shape: {recording.shape}")
 
@@ -241,7 +248,7 @@ class UtilityFunctions:
 
 
         try:
-            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates, pantompkins_peaks=peaks)
+            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates, pantompkins_peaks=peaks, leads_idxs=leads_idxs_dict[len(leads)])
             rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
@@ -410,8 +417,7 @@ class UtilityFunctions:
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
 
-                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size,
-                                                                                           peaks, header_files[i], remove_baseline)
+                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size,peaks, header_files[i], leads=leads, remove_baseline=remove_baseline)
                 end_processing = time.time()
                 avg_processing_times.append(end_processing - start_processing)
 

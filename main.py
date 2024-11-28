@@ -27,6 +27,7 @@ parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", acti
 parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
 parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
 parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
+parser.add_argument("-l", "--leads", choices={"2", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -41,6 +42,8 @@ name = args.name
 debug_mode = args.debug
 remove_baseline = args.remove_baseline
 fold_to_process = args.fold
+selected_leads_flag = args.leads
+
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
@@ -88,10 +91,17 @@ def main():
     logger.debug(fold_splits)
 
 
-    twelve_leads = ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6')
+    leads_dict = {
+            "12": ('I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6'),
+            "6": ('I', 'II', 'III', 'aVR', 'aVL', 'aVF'),
+            "4":  ('I', 'II', 'III', 'aVF'),
+            "3":  ('I', 'II', 'aVF'),
+            "2": ('I', 'II')
+            }
+
     folds = [ (fold, (data_training_full, data_test)) for fold, (data_training_full, data_test) in enumerate(fold_splits)]
 
-    params = [(twelve_leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in folds]
+    params = [(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device) for fold, (data_training_full, data_test) in folds]
 
     if fold_to_process != "*" and fold_to_process != "":
 
@@ -102,58 +112,44 @@ def main():
 
 
 
-    for leads in utilityFunctions.leads_set:
-        logger.info(f"Preparing database for {leads} leads.")
-        leads_idx = [utilityFunctions.twelve_leads.index(i) for i in leads]
+    logger.info(f"Preparing database for {leads_dict[selected_leads_flag]} leads.")
+    leads_idx = utilityFunctions.leads_idxs_dict[selected_leads_flag].values() #[utilityFunctions.twelve_leads.index(i) leads_idxs_dictfor i in leads]
+    for fold, (data_training_full, data_test) in folds:
+        logger.info(f"Beginning {fold} fold processing")
+        if fold_to_process == "*":
+            utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
+        weights = utilityFunctions.load_training_weights_for_fold(fold)
+        logger.info(f"Training FOLD: {fold}")
+        training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads_dict[selected_leads_flag], fold), recursive=False,
+                                        load_data=False,
+                                        data_cache_size=4, transform=None, leads=leads_idx)
+        logger.info("Loaded training dataset")
+        validation_dataset = HDF5Dataset('./' + utilityFunctions.validation_filename.format(leads_dict[selected_leads_flag],fold), recursive=False,
+                                            load_data=False,
+                                            data_cache_size=4, transform=None, leads=leads_idx)
+        logger.info("Loaded validation dataset")
 
-        for fold, (data_training_full, data_test) in folds:
-            logger.info(f"Beginning {fold} fold processing")
-            if fold_to_process == "*":
-                utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
+        blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
+        training_config = TrainingConfig(batch_size=1500,
+                                    n_epochs_stop=6,
+                                    num_epochs=25,
+                                    lr_rate=0.01,
+                                    criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
+                                    optimizer=torch.optim.Adam(blendModel.parameters(), lr=0.01),
+                                    device=device
+                                    )
 
-            weights = utilityFunctions.load_training_weights_for_fold(fold)
-
-            logger.info(f"Training FOLD: {k_folds}")
-            training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads, fold), recursive=False,
-                                           load_data=False,
-                                           data_cache_size=4, transform=None, leads=leads_idx)
-            logger.info("Loaded training dataset")
-            validation_dataset = HDF5Dataset('./' + utilityFunctions.validation_filename.format(leads,fold), recursive=False,
-                                               load_data=False,
-                                             data_cache_size=4, transform=None, leads=leads_idx)
-            logger.info("Loaded validation dataset")
-
-            blendModel = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads)
-            training_config = TrainingConfig(batch_size=1500,
-                                     n_epochs_stop=6,
-                                     num_epochs=25,
-                                     lr_rate=0.01,
-                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
-                                     optimizer=torch.optim.Adam(blendModel.parameters(), lr=0.01),
-                                     device=device
-                                     )
-
-            training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
-            validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
-
-            networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
-
-            trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads)
-            logger.info(f"Best trained model filename: {trained_model_name}")
-
-            trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads, device)
-            logger.info(f"Loaded model: {trained_model}")
-
-            test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads)
-
-            results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads)
-
-            logger.info("Saving results to json file")
-            results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
-
-
-
-
+        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
+        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
+        networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
+        trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag])
+        logger.info(f"Best trained model filename: {trained_model_name}")
+        trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
+        logger.info(f"Loaded model: {trained_model}")
+        test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
+        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag])
+        logger.info("Saving results to json file")
+        results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
 
 
 

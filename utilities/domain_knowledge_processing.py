@@ -1,4 +1,3 @@
-from os import O_TMPFILE
 import pywt
 import neurokit2 as nk
 import numpy as np
