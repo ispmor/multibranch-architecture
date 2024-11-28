@@ -473,7 +473,7 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header, True)
+        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header,)
         if signals is None or infos is None or peaks is None or rates is None:
             labels = np.zeros(len(classes))
             probabilities_mean = np.zeros(len(classes))
@@ -573,7 +573,7 @@ class UtilityFunctions:
     
 
 
-    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, num_classes=26  )-> ResultHandler:
+    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, num_classes=26  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
         scalar_outputs = np.ndarray((len(header_files), num_classes))
         binary_outputs = [[] for _ in range(len(header_files))]
@@ -586,7 +586,7 @@ class UtilityFunctions:
         for i,header_filename in enumerate(header_files):
             header = load_header(header_filename)
             recording = load_recording(recording_files[i])
-            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording)
+            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, remove_baseline=remove_baseline)
             logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")
         logger.info(f"#####   Fold={fold}, Leads: {len(leads)}")
