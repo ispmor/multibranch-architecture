@@ -275,7 +275,7 @@ def cleanse_data_mean(array):
 
 
 
-def analyse_recording(rec, signals, infos, rates,leads_idxs,  pantompkins_peaks=None, label=None,  sampling_rate=500):
+def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks=None, label=None,  sampling_rate=500):
     logger.debug("Entering analysed_results")
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():
@@ -322,11 +322,11 @@ def analyse_recording(rec, signals, infos, rates,leads_idxs,  pantompkins_peaks=
 
     heart_axis = None
     rhythm_origin = None
-    if 'I' in leads_idx and analysed_results['I']['info'] is not None:
-        if 'II' in leads_idx and analysed_results['II']['info'] is not None:
+    if 'I' in leads_idxs and analysed_results['I']['info'] is not None:
+        if 'II' in leads_idxs and analysed_results['II']['info'] is not None:
             rhythm_origin = get_rhythm_origin(analysed_results['I']['signal'], analysed_results['I']['info'], analysed_results['II']['signal'], analysed_results['II']['info'])
-        if 'aVF' in leads_idx and analysed_results['aVF']['info'] is not None:
-            if 'II' not in leads_idx:
+        if 'aVF' in leads_idxs and analysed_results['aVF']['info'] is not None:
+            if 'II' not in leads_idxs:
                 rhythm_origin = get_rhythm_origin(analysed_results['I']['signal'], analysed_results['I']['info'], analysed_results['aVF']['signal'], analysed_results['aVF']['info'])
             heart_axis = get_heart_axis(get_QRS_from_lead(analysed_results['I']['signal'], analysed_results['I']['info']), get_QRS_from_lead(analysed_results['aVF']['signal'], analysed_results['aVF']['info']))
 
