@@ -289,7 +289,7 @@ class UtilityFunctions:
 
 
 
-    def preprocess_recording(self, recording, header, remove_baseline, bw_wavelet="sym10", bw_level=8, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
+    def preprocess_recording(self, recording, header, remove_baseline, leads_idxs, bw_wavelet="sym10", bw_level=8, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
         if remove_baseline:
             recording, _ = baseline_wandering_removal(recording, bw_wavelet,bw_level)
         signals = {}
@@ -412,7 +412,7 @@ class UtilityFunctions:
 
                 start_processing = time.time()
 
-                recording, signals, infos, peaks, rates = self.preprocess_recording(recording_full, header, remove_baseline)
+                recording, signals, infos, peaks, rates = self.preprocess_recording(recording_full, header, remove_baseline, leads_idxs=leads_idxs_dict[len(leads)])
 
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
@@ -473,7 +473,7 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header, remove_baseline)
+        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header, remove_baseline, leads_idxs=leads_idxs_dict[len(leads)])
         if signals is None or infos is None or peaks is None or rates is None:
             labels = np.zeros(len(classes))
             probabilities_mean = np.zeros(len(classes))
