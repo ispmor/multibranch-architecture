@@ -349,7 +349,7 @@ def analyse_recording(rec, signals, infos, rates,leads_idxs,  pantompkins_peaks=
 
     return analysed_results
 
-def analysis_dict_to_array(analysis_dict, leads_idxs=leads_idx):
+def analysis_dict_to_array(analysis_dict, leads_idxs):
     result = []
     logger.debug(analysis_dict)
     signals_to_extract = ['bpm', 'missing_qrs', 'missing_p', 'qrs_duration', 's_duration', 'rhythm', 'notched', 'heart_axis', 'rhythm_origin_vertical', 'rhythm_origin_horizontal']

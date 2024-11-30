@@ -249,7 +249,7 @@ class UtilityFunctions:
 
         try:
             domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks  )
-            rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=0)
+            rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)])[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
             logger.warn(f"Currently processed file: {header_file}, issue:{e}")
