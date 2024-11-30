@@ -6,7 +6,6 @@ import math
 
 logger = logging.getLogger(__name__)
 
-leads_idx = {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':7, 'V3':8, 'V4':9, 'V5':10, 'V6':11}
 
 def leading_rythm(bpm):
     if(bpm < 50):
@@ -276,7 +275,7 @@ def cleanse_data_mean(array):
 
 
 
-def analyse_recording(rec, signals, infos, rates,  pantompkins_peaks=None, label=None, leads_idxs=leads_idx, sampling_rate=500):
+def analyse_recording(rec, signals, infos, rates,leads_idxs,  pantompkins_peaks=None, label=None,  sampling_rate=500):
     logger.debug("Entering analysed_results")
     analysed_results = {}
     for lead_name, idx in leads_idxs.items():

@@ -248,7 +248,7 @@ class UtilityFunctions:
 
 
         try:
-            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates, pantompkins_peaks=peaks, leads_idxs=leads_idxs_dict[len(leads)])
+            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks  )
             rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis)[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
