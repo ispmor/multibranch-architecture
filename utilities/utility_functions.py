@@ -573,7 +573,7 @@ class UtilityFunctions:
     
 
 
-    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, num_classes=26  )-> ResultHandler:
+    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, experiment_name="",  num_classes=26  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
         scalar_outputs = np.ndarray((len(header_files), num_classes))
         binary_outputs = [[] for _ in range(len(header_files))]
@@ -604,6 +604,6 @@ class UtilityFunctions:
         logger.info("########################################################")
 
         binary_outputs_list = [x.tolist() for x in binary_outputs]
-        return ResultHandler(c,labels, binary_outputs_list, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric)
+        return ResultHandler(c,labels, binary_outputs_list, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric, leads, fold, experiment_name)
 
 

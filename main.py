@@ -27,7 +27,7 @@ parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", acti
 parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
 parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
 parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
-parser.add_argument("-l", "--leads", choices={"2", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
+parser.add_argument("-l", "--leads", choices={"2","3", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -63,7 +63,7 @@ def main():
     execution_time=datetime.now()
     date = execution_time.date()
     time = execution_time.time()
-    log_filename =f'logs/{date}/{name}_{time}.log'
+    log_filename =f'logs/{name}/{date}/{time}.log'
     os.makedirs(os.path.dirname(log_filename), exist_ok=True)
     logging_level = logging.INFO
     if debug_mode:
@@ -148,9 +148,9 @@ def main():
         trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
         logger.info(f"Loaded model: {trained_model}")
         test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
-        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], remove_baseline)
+        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], remove_baseline, name)
         logger.info("Saving results to json file")
-        results.save_json(f"results/{datetime.today().strftime('%Y-%m-%d')}/{datetime.today().strftime('%H:%M:%S')}.json")
+        results.save_json(f"results/{name}/{datetime.today().strftime('%Y-%m-%d')}/fold_{fold}_{datetime.today().strftime('%H:%M:%S')}.json")
 
 
 
