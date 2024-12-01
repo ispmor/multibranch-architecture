@@ -29,8 +29,8 @@ leads_idxs = {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2'
 leads_idxs_dict = {
         12: {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5, 'V1':6, 'V2':7, 'V3':8, 'V4':9, 'V5':10, 'V6':11},
         6: {'I': 0, 'II': 1, 'III':2, 'aVR': 3, 'aVL':4, 'aVF':5},
-        4: {'I': 0, 'II': 1, 'III':2, 'aVF':5},
-        3: {'I': 0, 'II': 1, 'aVF':5},
+        4: {'I': 0, 'II': 1, 'III':2, 'aVF':4},
+        3: {'I': 0, 'II': 1, 'aVF':4},
         2: {'I': 0, 'II':1}
         } #we should use aVF instead of II in 2 leads example
 
