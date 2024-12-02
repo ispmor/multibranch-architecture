@@ -50,7 +50,7 @@ class NBeatsNet(nn.Module):
             linear_input_size = input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier
         self.fc_linear = nn.Linear(363 * len(classes), len(classes))
 
-        print(f'| N-Beats')
+        print(f'| N-Beats, device={self.device}')
 
         for stack_id in range(len(self.stack_types)):
             self.stacks.append(self.create_stack(stack_id))
