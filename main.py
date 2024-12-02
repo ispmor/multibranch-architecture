@@ -28,6 +28,7 @@ parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
 parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
 parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
 parser.add_argument("-l", "--leads", choices={"2","3", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
+parser.add_argument('--network', choices={"LSTM", "NBEATS", "GRU"}, help="Select network to train", default="NBEATS")
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -43,7 +44,7 @@ debug_mode = args.debug
 remove_baseline = args.remove_baseline
 fold_to_process = args.fold
 selected_leads_flag = args.leads
-
+network_name = args.network
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
@@ -54,8 +55,8 @@ def task_prepare_datasets(params):
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
-    alpha_config = BranchConfig("NBEATS", 7, 2, window_size)
-    beta_config = BranchConfig("NBEATS", 7, 2, window_size)
+    alpha_config = BranchConfig(network_name, 7, 2, window_size)
+    beta_config = BranchConfig(network_name, 7, 2, window_size)
 
     if clean_datasets_var:
         clean_datasets_directory()
