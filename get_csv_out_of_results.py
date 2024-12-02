@@ -24,7 +24,7 @@ accuracy=[]
 fmeasure=[]
 challenge=[]
 
-for file in os.listdir(directory):
+for file in sorted(os.listdir(directory)):
     filename =  os.fsdecode(file)
     filepath = data_dir  + filename
     print(filepath)
