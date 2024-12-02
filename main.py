@@ -54,8 +54,8 @@ def task_prepare_datasets(params):
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
-    alpha_config = BranchConfig("LSTM", 7, 2, window_size)
-    beta_config = BranchConfig("LSTM", 7, 2, window_size)
+    alpha_config = BranchConfig("NBEATS", 7, 2, window_size)
+    beta_config = BranchConfig("NBEATS", 7, 2, window_size)
 
     if clean_datasets_var:
         clean_datasets_directory()

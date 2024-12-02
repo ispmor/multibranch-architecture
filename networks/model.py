@@ -869,7 +869,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         num_classes=len(selected_classes),
                         hidden_size=hs,
                         num_layers=layers,
-                        seq_length=353,
+                        seq_length=single_peak_length,
                         device=device,
                         model_type=as_branch,
                         classes=selected_classes)
@@ -877,112 +877,11 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
             return Nbeats_beta(input_size=len(leads),
                             num_classes=len(selected_classes),
                             hidden_size=hs,
-                            seq_length=353,
+                            seq_length=single_peak_length,
                             device=device,
                             model_type=as_branch,
                             classes=selected_classes,
                             num_layers=layers)
-
-
-    
-
-
-
-
-def get_network( network, alpha_hs, alpha_layers, beta_hs, beta_layers, leads, selected_classes, single_peak_length):
-    if network in "GRU":
-        torch.manual_seed(17)
-        print("GRU")
-        net = GRU_ECG_ALPHA(input_size=len(leads),
-                    num_classes=len(selected_classes),
-                    hidden_size=alpha_hs,
-                    num_layers=alpha_layers,
-                    seq_length=single_peak_length,
-                    model_type='alpha',
-                    classes=selected_classes)
-        net.cuda()
-        torch.manual_seed(17)
-        net_beta = GRU_ECG_BETA(input_size=len(leads),
-                        num_classes=len(selected_classes),
-                        hidden_size=beta_hs,
-                        num_layers=beta_layers,
-                        seq_length=single_peak_length,
-                        model_type='beta',
-                        classes=selected_classes)
-        net_beta.cuda()
- 
-    if "LSTM_PEEPHOLE" in network:
-        torch.manual_seed(17)
-        print("LSTM_PEEPHOLE")
-        net = LSTMPeephole_ALPHA(input_size=len(leads),
-                    num_classes=len(selected_classes),
-                    hidden_size=alpha_hs,
-                    num_layers=alpha_layers,
-                    seq_length=single_peak_length,
-                    model_type='alpha',
-                    classes=selected_classes)
- 
-        net.cuda()
-        torch.manual_seed(17)
-        net_beta = LSTMPeephole_BETA(input_size=len(leads),
-                        num_classes=len(selected_classes),
-                        hidden_size=beta_hs,
-                        num_layers=beta_layers,
-                        seq_length=single_peak_length,
-                        model_type='beta',
-                        classes=selected_classes)
-        net_beta.cuda()
-     
-    if network in "NBEATS":
-        print("NBEATS")
-        torch.manual_seed(17)
-        net = Nbeats_alpha(input_size=len(leads),
-                        num_classes=len(selected_classes),
-                        hidden_size=alpha_hs,
-                        num_layers=alpha_layers,
-                        seq_length=353,
-                        model_type='alpha',
-                        classes=selected_classes)
-        net.cuda()
-        torch.manual_seed(17)
-        net_beta = Nbeats_beta(input_size=len(leads),
-                            num_classes=len(selected_classes),
-                            hidden_size=beta_hs,
-                            seq_length=353,
-                            model_type='beta',
-                            classes=selected_classes,
-                            num_layers=beta_layers)
-        net_beta.cuda()
-        torch.manual_seed(17)
-     
- 
-    if network in "LSTM":
-        torch.manual_seed(17)
-        print("LSTM")
-        net = LSTM_ECG(input_size=len(leads),
-                    num_classes=len(selected_classes),
-                    hidden_size=alpha_hs,
-                    num_layers=alpha_layers,
-                    seq_length=single_peak_length,
-                    model_type='alpha',
-                    classes=selected_classes)
- 
-        net.cuda()
-        torch.manual_seed(17)
-        net_beta = LSTM_ECG(input_size=len(leads),
-                        num_classes=len(selected_classes),
-                        hidden_size=beta_hs,
-                        num_layers=beta_layers,
-                        seq_length=single_peak_length,
-                        model_type='beta',
-                        classes=selected_classes)
-        net_beta.cuda()
- 
-    return net, net_beta
-
-
-
-
 
 
 class BranchConfig:
