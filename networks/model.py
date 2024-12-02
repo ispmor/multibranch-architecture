@@ -77,7 +77,7 @@ class NBeatsNet(nn.Module):
         return GenericBlock
 
     def forward(self, backcast):
-        forecast = torch.zeros(size=backcast.shape).cuda(self.device)
+        forecast = torch.zeros(size=backcast.shape, device=self.device)
         for stack_id in range(len(self.stacks)):
             for block_id in range(len(self.stacks[stack_id])):
                 b, f = self.stacks[stack_id][block_id](backcast)
@@ -903,41 +903,4 @@ def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes:
     beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, "beta", device)
 
     return BlendMLP(alpha_branch, beta_branch, classes)
-
-class LightningBlendMLP(L.LightningModule):
-    model = None
-    criterion = None
-    def __init__(self, blendModel, criterion):
-        super().__init__()
-        self.model=blendModel
-        self.criterion=criterion
-
-    def training_step(self, batch, batch_idx):
-        x, y, rr_features, wavelet_features = batch
-        x = torch.transpose(x, 1, 2)
-        rr_features = torch.transpose(rr_features, 1, 2)
-        wavelet_features = torch.transpose(wavelet_features, 1, 2)
-        rr_x = torch.hstack((rr_features, x))
-        rr_wavelets = torch.hstack((rr_features, wavelet_features))
-        pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
-        pca_features = torch.pca_lowrank(pre_pca)
-        pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
-                                        pca_features[2].reshape(pca_features[2].shape[0], -1)))
-        pca_features = pca_features[:, :, None]
-        local_step += 1
-        model.train()
-        forecast = model(rr_x,
-                            rr_wavelets,
-                            pca_features
-                            )
-        #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
-        loss = self.criterion(forecast, y)
-        self.log("train_loss", loss)
-        return loss
-
-
-    def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
-
 
