@@ -82,8 +82,6 @@ class NBeatsNet(nn.Module):
             for block_id in range(len(self.stacks[stack_id])):
                 b, f = self.stacks[stack_id][block_id](backcast)
                 backcast = backcast - b
-                print(forecast.get_device())
-                print(f.get_device)
                 forecast = forecast + f
 
         return backcast, forecast
@@ -240,6 +238,7 @@ class Nbeats_beta(nn.Module):
                                      target_size=num_classes,
                                      input_size=self.input_size,
                                      thetas_dims=(32, 32),
+                                     device=self.device
                                      classes=self.classes,
                                      hidden_layer_units=self.hidden_size)
 
