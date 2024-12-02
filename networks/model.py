@@ -82,6 +82,8 @@ class NBeatsNet(nn.Module):
             for block_id in range(len(self.stacks[stack_id])):
                 b, f = self.stacks[stack_id][block_id](backcast)
                 backcast = backcast - b
+                print(forecast.get_device())
+                print(f.get_device)
                 forecast = forecast + f
 
         return backcast, forecast
