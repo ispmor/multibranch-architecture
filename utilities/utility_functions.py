@@ -493,7 +493,7 @@ class UtilityFunctions:
             labels=probabilities_mean > 0.5
             return classes, labels, probabilities_mean, 0
         else:
-            x, _, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch)
+            x, _, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch, include_domain)
 
             logger.debug(f"X Shape after transpose: {x.shape}")
             logger.debug(f"RR_Features after transpose: {rr_features.shape}")

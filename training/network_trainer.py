@@ -45,7 +45,7 @@ class NetworkTrainer:
         epoch_loss = []
         model.to(self.training_config.device)
         for batch in training_data_loader:
-            x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch)
+            x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch, include_domain)
             local_step += 1
             model.train()
             if include_domain:
@@ -78,7 +78,7 @@ class NetworkTrainer:
         with torch.no_grad():
             model.eval()
             for batch in validation_data_loader:
-                x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch)
+                x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch, include_domain)
 
                 if include_domain:
                     forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))

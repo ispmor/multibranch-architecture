@@ -5,10 +5,11 @@ from torch import nn
 from torch.nn import functional as F
 from torch import autograd
 from torch import jit
+import logging
 import math
 
-import lightning as L
-import pdb
+
+logger = logging.getLogger(__name__)
 
 
 class NBeatsNet(nn.Module):
@@ -160,8 +161,8 @@ class Nbeats_alpha(nn.Module):
                  device,
                  classes=[],
                  model_type='alpha',
-                 input_features_size_a1=363,
-                 input_features_size_a2=363):
+                 input_features_size_a1=350,
+                 input_features_size_a2=185):
         super(Nbeats_alpha, self).__init__()
 
         self.num_classes = num_classes  # number of classes
@@ -182,7 +183,7 @@ class Nbeats_alpha(nn.Module):
                                        device=device,
                                        classes=self.classes,
                                        hidden_layer_units=self.hidden_size,
-                                       input_features_size=input_features_size)
+                                       input_features_size=input_features_size_a1)
 
         self.nbeats_alpha2 = NBeatsNet(stack_types=[NBeatsNet.GENERIC_BLOCK],
                                        nb_blocks_per_stack=self.num_layers,
@@ -192,14 +193,15 @@ class Nbeats_alpha(nn.Module):
                                        device=device,
                                        classes=self.classes,
                                        hidden_layer_units=hidden_size,
-                                       input_features_size=input_features_size)
+                                       input_features_size=input_features_size_a2)
 
-        self.fc_1 = nn.Linear(self.input_size * 555, 128)  # hidden_size, 128)  # fully connected 1
+        self.fc_1 = nn.Linear(self.input_size * (input_features_size_a1 + input_features_size_a2), 128)  # hidden_size, 128)  # fully connected 1
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
 
     def forward(self, alpha1_input, alpha2_input):
         _, output_alpha1 = self.nbeats_alpha1(alpha1_input)  # lstm with input, hidden, and internal state
         _, output_alpha2 = self.nbeats_alpha2(alpha2_input)  # lstm with input, hidden, and internal state
+        logger.debug(f"ALPHA 1 Output Shape: {output_alpha1.shape}\nALPHA 2 Output shape: {output_alpha2.shape}")
 
         tmp = torch.hstack((output_alpha1, output_alpha2))
         tmp = torch.flatten(tmp, start_dim=1)
@@ -220,7 +222,7 @@ class Nbeats_beta(nn.Module):
                  device,
                  classes=[],
                  model_type='beta',
-                 input_features_size=363):
+                 input_features_size=360):
         super(Nbeats_beta, self).__init__()
 
         self.num_classes = num_classes  # number of classes
@@ -249,12 +251,12 @@ class Nbeats_beta(nn.Module):
                                      hidden_layer_units=self.hidden_size,
                                      input_features_size=input_features_size)
 
-        self.fc = nn.Linear(input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier,
+        self.fc = nn.Linear(input_size * self.linea_multiplier + input_features_size * self.linea_multiplier + self.linea_multiplier,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
 
     def forward(self, beta_input):
         _, output_beta = self.nbeats_beta(beta_input)  # lstm with input, hidden, and internal state
-
+        logger.debug(f"BETA Output shape: {output_beta.shape}\nBETA INPUT shape: {beta_input.shape}")
         tmp = torch.squeeze(output_beta)
         out = self.relu(tmp)  # relu
         out = self.fc(out)  # Final Output
@@ -449,343 +451,6 @@ class GRU_ECG_BETA(nn.Module):
         return out
 
 
-class JitLSTMCell(nn.Module):
-
-    def __init__(self, input_size, hidden_size):
-        super(JitLSTMCell, self).__init__()
-
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-
-        self.weight_ih = nn.Parameter(torch.Tensor(4 * hidden_size, input_size))
-        self.weight_hh = nn.Parameter(torch.Tensor(4 * hidden_size, hidden_size))
-
-        self.bias_ih = nn.Parameter(torch.Tensor(4 * hidden_size))
-        self.bias_hh = nn.Parameter(torch.Tensor(4 * hidden_size))
-
-        self.weight_ch_i = nn.Parameter(torch.Tensor(hidden_size))
-        self.weight_ch_f = nn.Parameter(torch.Tensor(hidden_size))
-        self.weight_ch_o = nn.Parameter(torch.Tensor(hidden_size))
-
-        self.reset_parameter()
-
-    def reset_parameter(self):
-        stdv = 1.0 / math.sqrt(self.hidden_size)
-        for weight in self.parameters():
-            nn.init.uniform_(weight, -stdv, stdv)
-
-    def forward(self, input, state):
-        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
-        batch_size, sequence_size, input_size = input.size()
-        hidden_seq = []
-        hx, cx = state
-        for t in range(sequence_size):
-            inp = input[:, t, :]
-            xh = (torch.mm(inp, self.weight_ih.t()) + self.bias_ih + torch.mm(hx, self.weight_hh.t()) + self.bias_hh)
-
-            i, f, _c, o = xh.chunk(4, 1)
-
-            i = torch.sigmoid(i + (self.weight_ch_i * cx))
-            f = torch.sigmoid(f + (self.weight_ch_f * cx))
-            _c = torch.tanh(_c)
-
-            cy = (f * cx) + (i * _c)
-
-            o = torch.sigmoid(o + (self.weight_ch_o * cy))
-            hy = o * torch.tanh(cy)
-            hidden_seq.append(hy.unsqueeze(0))
-
-        hidden_seq = torch.cat(hidden_seq, dim=0)
-        hidden_seq = hidden_seq.transpose(0, 1).contiguous()
-
-        return hidden_seq, (hx, cx)
-
-
-class LSTMPeephole_ALPHA(nn.Module):
-    def __init__(self,
-                 input_size,
-                 num_classes,
-                 hidden_size,
-                 num_layers,
-                 seq_length,
-                 device,
-                 model_type='alpha',
-                 classes=[]):
-        super(LSTMPeephole_ALPHA, self).__init__()
-
-        self.num_classes = num_classes  # number of classes
-        self.num_layers = num_layers  # number of layers
-        self.input_size = input_size  # input size
-        self.hidden_size = hidden_size  # hidden state
-        self.seq_length = seq_length  # sequence length
-        self.model_type = model_type
-        self.classes = classes
-        self.device=device
-        self.sigmoid = nn.Sigmoid()
-        self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
-
-        print(f'| LSTM_PEEPHOLE_ALPHA')
-
-        # self.lstm = nn.LSTM(input_size, hidden_size, bidirectional=True, batch_first=True)
-        # The linear layer that maps from hidden state space to tag space
-        self.lstmpeephole_alpha1 = JitLSTMCell(input_size=input_size, hidden_size=hidden_size)
-        self.lstmpeephole_alpha2 = JitLSTMCell(input_size=input_size, hidden_size=hidden_size)
-
-        self.fc_1 = nn.Linear(hidden_size * 541, 128)  # hidden_size, 128)  # fully connected 1
-        self.fc = nn.Linear(128, num_classes)  # fully connected last layer
-        self.relu = nn.ReLU()
-
-    def forward(self, alpha1_input, alpha2_input):
-        h_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-        c_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
-                                            device=self.device))  # internal state
-        h_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-        c_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
-                                            device=self.device))  # internal state
-
-
-        oa1, _ = self.lstmpeephole_alpha1(alpha1_input,
-                                                   (h_0, c_0))  # lstm with input, hidden, and internal state
-        oa2, _ = self.lstmpeephole_alpha2(alpha2_input,
-                                                   (h_1, c_1))  # lstm with input, hidden, and internal state
-
-        tmp = torch.hstack((oa1, oa2))
-        tmp = torch.flatten(tmp, start_dim=1)
-
-        out = self.fc_1(tmp)  # first Dense
-        del tmp, h_0, c_0, h_1, c_1
-        out = self.relu(out)  # relu
-        out = self.fc(out) # Final Output
-        return out
-
-
-class LSTMPeephole_BETA(nn.Module):
-    def __init__(self,
-                 input_size,
-                 num_classes,
-                 hidden_size,
-                 num_layers,
-                 seq_length,
-                 device,
-                 model_type='beta',
-                 classes=[]):
-        super(LSTMPeephole_BETA, self).__init__()
-
-        self.num_classes = num_classes  # number of classes
-        self.num_layers = num_layers  # number of layers
-        self.input_size = input_size  # input size
-        self.hidden_size = hidden_size  # hidden state
-        self.seq_length = seq_length  # sequence length
-        self.model_type = model_type
-        self.classes = classes
-        self.sigmoid = nn.Sigmoid()
-        self.device=device
-        self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
-
-        print(f'| LSTM_PEEPHOLE_BETA')
-
-        self.linea_multiplier = input_size
-        if input_size > 6:
-            self.linea_multiplier = 6
-        # self.hidden_size=1
-        # self.num_layers=1
-        self.input_size = 1
-
-        # self.lstm = nn.LSTM(input_size, hidden_size, bidirectional=True, batch_first=True)
-        # The linear layer that maps from hidden state space to tag space
-        self.lstmpeephole_beta = JitLSTMCell(input_size=self.input_size, hidden_size=hidden_size)
-
-        self.fc = nn.Linear(
-            (input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier) * hidden_size,
-            num_classes)
-        self.relu = nn.ReLU()
-
-    def forward(self, beta_input):
-        h_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-
-        c_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-
-
-        oa1, _  = self.lstmpeephole_beta(beta_input,
-                                                 (h_0, c_0))  # lstm with input, hidden, and internal state
-
-        out = torch.flatten(oa1, start_dim=1)
-        out = self.relu(out)  # relu
-        out = self.fc(out)  # Final Output
-        return out
-
-
-class CustomLSTMPeephole(nn.Module):
-    def __init__(self, input_size, hidden_size, peephole=True):
-        super().__init__()
-        self.input_sz = input_size
-        self.hidden_size = hidden_size
-        self.peephole = peephole
-        self.W = nn.Parameter(torch.Tensor(input_size, hidden_size * 4))
-        self.U = nn.Parameter(torch.Tensor(hidden_size, hidden_size * 4))
-        self.bias = nn.Parameter(torch.Tensor(hidden_size * 4))
-        self.init_weights()
-
-    def init_weights(self):
-        stdv = 1.0 / math.sqrt(self.hidden_size)
-        for weight in self.parameters():
-            weight.data.uniform_(-stdv, stdv)
-
-    def forward(self, x,
-                init_states):
-        """Assumes x is of shape (batch, sequence, feature)"""
-        bs, seq_sz, _ = x.size()
-        hidden_seq = []
-
-        h_t, c_t = init_states
-
-        HS = self.hidden_size
-        for t in range(seq_sz):
-            x_t = x[:, t, :]
-            # batch the computations into a single matrix multiplication
-
-            if self.peephole:
-                gates = (torch.mm(x_t, self.U) + torch.mm(c_t, self.W) + self.bias)
-            else:
-                gates = x_t @ self.U + h_t @ self.W + self.bias
-                g_t = torch.tanh(gates[:, HS * 2:HS * 3])
-
-            i_t, f_t, o_t = (
-                torch.sigmoid(gates[:, :HS]),  # input
-                torch.sigmoid(gates[:, HS:HS * 2]),  # forget
-                torch.sigmoid(gates[:, HS * 3:]),  # output
-            )
-
-            if self.peephole:
-                c_t = f_t * c_t + i_t * torch.sigmoid(x_t @ self.U + self.bias)[:, HS * 2:HS * 3]
-                h_t = torch.tanh(o_t * c_t)
-            else:
-                c_t = f_t * c_t + i_t * g_t
-                h_t = o_t * torch.tanh(c_t)
-
-            hidden_seq.append(h_t.unsqueeze(0))
-
-        hidden_seq = torch.cat(hidden_seq, dim=0)
-        # reshape from shape (sequence, batch, feature) to (batch, sequence, feature)
-        hidden_seq = hidden_seq.transpose(0, 1).contiguous()
-
-        return hidden_seq, (h_t, c_t)
-
-
-
-class CustomLSTMPeephole_ALPHA(nn.Module):
-    def __init__(self,
-                 input_size,
-                 num_classes,
-                 hidden_size,
-                 num_layers,
-                 seq_length,
-                 device,
-                 model_type='alpha',
-                 classes=[]):
-        super(CustomLSTMPeephole_ALPHA, self).__init__()
-
-        self.num_classes = num_classes  # number of classes
-        self.num_layers = num_layers  # number of layers
-        self.input_size = input_size  # input size
-        self.hidden_size = hidden_size  # hidden state
-        self.seq_length = seq_length  # sequence length
-        self.model_type = model_type
-        self.classes = classes
-        self.device = device
-        self.sigmoid = nn.Sigmoid()
-        self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
-
-        print(f'| LSTM_PEEPHOLE_ALPHA')
-
-        # self.lstm = nn.LSTM(input_size, hidden_size, bidirectional=True, batch_first=True)
-        # The linear layer that maps from hidden state space to tag space
-        self.lstmpeephole_alpha1 = CustomLSTMPeephole(input_size=input_size, hidden_size=hidden_size)
-        self.lstmpeephole_alpha2 = CustomLSTMPeephole(input_size=input_size, hidden_size=hidden_size)
-
-        self.fc_1 = nn.Linear(hidden_size * 541, 128)  # hidden_size, 128)  # fully connected 1
-        self.fc = nn.Linear(128, num_classes)  # fully connected last layer
-        self.relu = nn.ReLU()
-
-    def forward(self, alpha1_input, alpha2_input):
-        h_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-        c_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
-                                            device=self.device))  # internal state
-        h_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-        c_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
-                                            device=self.device))  # internal state
-
-        output = []
-        oa1, (h_0, c_0) = self.lstmpeephole_alpha1(alpha1_input, (h_0, c_0))  # lstm with input, hidden, and internal state
-        oa2, (h_1, c_1) = self.lstmpeephole_alpha2(alpha2_input, (h_1, c_1))  # lstm with input, hidden, and internal state
-
-        tmp = torch.hstack((oa1, oa2))
-        tmp = torch.flatten(tmp, start_dim=1)
-
-        out = self.fc_1(tmp)  # first Dense
-        out = self.relu(out)  # relu
-        out = self.fc(out)  # Final Output
-        return out
-
-
-
-class CustomLSTMPeephole_BETA(nn.Module):
-    def __init__(self,
-                 input_size,
-                 num_classes,
-                 hidden_size,
-                 num_layers,
-                 seq_length,
-                 device,
-                 model_type='beta',
-                 classes=[]):
-        super(CustomLSTMPeephole_BETA, self).__init__()
-
-        self.num_classes = num_classes  # number of classes
-        self.num_layers = num_layers  # number of layers
-        self.input_size = input_size  # input size
-        self.hidden_size = hidden_size  # hidden state
-        self.seq_length = seq_length  # sequence length
-        self.model_type = model_type
-        self.classes = classes
-        self.device = device
-        self.sigmoid = nn.Sigmoid()
-        self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
-
-        print(f'| LSTM_PEEPHOLE_BETA')
-
-        self.linea_multiplier = input_size
-        if input_size > 6:
-            self.linea_multiplier = 6
-        self.input_size = 1
-
-        self.lstmpeephole_beta = CustomLSTMPeephole(input_size=self.input_size, hidden_size=self.hidden_size)
-
-        self.fc = nn.Linear(
-            (input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier) * self.hidden_size,
-            num_classes)
-        self.relu = nn.ReLU()
-
-    def forward(self, beta_input):
-        h_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-
-        c_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
-                                            device=self.device))  # hidden state
-
-        oa1, (h_0, c_0) = self.lstmpeephole_beta(beta_input, (h_0, c_0))  # lstm with input, hidden, and internal state
-
-        out = torch.flatten(oa1, start_dim=1)
-        out = self.relu(out)  # relu
-        out = self.fc(out) # Final Output
-        return out
-
 
 class BlendMLP(nn.Module):
     def __init__(self, modelA, modelB, classes):
@@ -807,57 +472,34 @@ class BlendMLP(nn.Module):
             return x1
         return x2
 
-def get_single_network(network, hs, layers, leads, selected_classes, single_peak_length, as_branch, device):
+
+
+def get_single_network(network, hs, layers, leads, selected_classes, single_peak_length,a1_in, a2_in, b_in, as_branch, device):
     torch.manual_seed(17)
-    if network == "GRU":
-        if as_branch == "alpha":
-            return GRU_ECG_ALPHA(input_size=len(leads),
-                    num_classes=len(selected_classes),
-                    hidden_size=hs,
-                    num_layers=layers,
-                    seq_length=single_peak_length,
-                    device=device,
-                    model_type=as_branch,
-                    classes=selected_classes)
-        else:
-            return GRU_ECG_BETA(input_size=len(leads),
-                        num_classes=len(selected_classes),
-                        hidden_size=hs,
-                        num_layers=layers,
-                        seq_length=single_peak_length,
-                        device=device,
-                        model_type=as_branch,
-                        classes=selected_classes)
 
     if network == "LSTM":
-        return LSTM_ECG(input_size=len(leads),
-            num_classes=len(selected_classes),
-            hidden_size=hs,
-            num_layers=layers,
-            seq_length=single_peak_length,
-            device=device,
-            model_type=as_branch,
-            classes=selected_classes)
-
-    if network == "LSTM_PEEPHOLE":
         if as_branch == "alpha":
-            return LSTMPeephole_ALPHA(input_size=len(leads),
-                    num_classes=len(selected_classes),
-                    hidden_size=hs,
-                    num_layers=layers,
-                    seq_length=single_peak_length,
-                    device=device,
-                    model_type=as_branch,
-                    classes=selected_classes)
+            return LSTM_ECG(input_size=len(leads),
+                num_classes=len(selected_classes),
+                hidden_size=hs,
+                num_layers=layers,
+                seq_length=single_peak_length,
+                device=device,
+                model_type=as_branch,
+                classes=selected_classes,
+                input_features_size_a1=a1_in,
+                input_features_size_a2=a2_in)
         else:
-            return LSTMPeephole_BETA(input_size=len(leads),
-                        num_classes=len(selected_classes),
-                        hidden_size=hs,
-                        num_layers=layers,
-                        seq_length=single_peak_length,
-                        device=device,
-                        model_type=as_branch,
-                        classes=selected_classes)
+            return LSTM_ECG(input_size=len(leads),
+                num_classes=len(selected_classes),
+                hidden_size=hs,
+                num_layers=layers,
+                seq_length=single_peak_length,
+                device=device,
+                model_type=as_branch,
+                classes=selected_classes,
+                input_features_size=b_in)
+
 
     if network == "NBEATS":
         if as_branch == "alpha":
@@ -868,7 +510,9 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         seq_length=single_peak_length,
                         device=device,
                         model_type=as_branch,
-                        classes=selected_classes)
+                        classes=selected_classes,
+                        input_features_size_a1=a1_in,
+                        input_features_size_a2=a2_in)
         else:
             return Nbeats_beta(input_size=len(leads),
                             num_classes=len(selected_classes),
@@ -877,7 +521,8 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                             device=device,
                             model_type=as_branch,
                             classes=selected_classes,
-                            num_layers=layers)
+                            num_layers=layers,
+                            input_features_size=b_in)
 
 
 class BranchConfig:
@@ -886,17 +531,20 @@ class BranchConfig:
     hidden_size = -1 
     layers = -1
     
-    def __init__(self,network_name, hidden_size, layers, single_peak_length) -> None:
+    def __init__(self,network_name, hidden_size, layers, single_peak_length, a1_input_size=None, a2_input_size=None, beta_input_size=None) -> None:
         self.network_name = network_name
         self.single_peak_length=single_peak_length
         self.hidden_size=hidden_size
         self.layers=layers
+        self.a1_input_size=a1_input_size
+        self.a2_input_size=a2_input_size
+        self.beta_input_size=beta_input_size
 
 
 
 def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes: list, device, leads: list) -> BlendMLP:
-    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, "alpha", device)
-    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, "beta", device)
+    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, alpha_config.a1_input_size, alpha_config.a2_input_size, None, "alpha", device)
+    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
 
     return BlendMLP(alpha_branch, beta_branch, classes)
 
