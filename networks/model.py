@@ -41,7 +41,6 @@ class NBeatsNet(nn.Module):
         self.thetas_dim = thetas_dims
         self.device = device
         self.parameters = []
-        self.input_features_size
 
         if model_type == 'alpha':
             linear_input_size = input_features_size * input_size
@@ -160,8 +159,9 @@ class Nbeats_alpha(nn.Module):
                  seq_length,
                  device,
                  classes=[],
-                 model_type='alpha'
-                 input_features_size=363):
+                 model_type='alpha',
+                 input_features_size_a1=363,
+                 input_features_size_a2=363):
         super(Nbeats_alpha, self).__init__()
 
         self.num_classes = num_classes  # number of classes
@@ -219,7 +219,8 @@ class Nbeats_beta(nn.Module):
                  seq_length,
                  device,
                  classes=[],
-                 model_type='beta'):
+                 model_type='beta',
+                 input_features_size=363):
         super(Nbeats_beta, self).__init__()
 
         self.num_classes = num_classes  # number of classes
@@ -245,7 +246,8 @@ class Nbeats_beta(nn.Module):
                                      thetas_dims=(32, 32),
                                      device=self.device,
                                      classes=self.classes,
-                                     hidden_layer_units=self.hidden_size)
+                                     hidden_layer_units=self.hidden_size,
+                                     input_features_size=input_features_size)
 
         self.fc = nn.Linear(input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
