@@ -26,7 +26,8 @@ class NBeatsNet(nn.Module):
                  hidden_layer_units=17,
                  device=None,
                  classes=[],
-                 model_type='alpha'):
+                 model_type='alpha',
+                 input_features_size=363):
         super(NBeatsNet, self).__init__()
         self.classes = classes
         self.leads = []
@@ -40,15 +41,16 @@ class NBeatsNet(nn.Module):
         self.thetas_dim = thetas_dims
         self.device = device
         self.parameters = []
+        self.input_features_size
 
         if model_type == 'alpha':
-            linear_input_size = 363 * input_size
+            linear_input_size = input_features_size * input_size
         else:
             self.linea_multiplier = input_size
             if input_size > 6:
                 self.linea_multiplier = 6
-            linear_input_size = input_size * self.linea_multiplier + 363 * self.linea_multiplier + self.linea_multiplier
-        self.fc_linear = nn.Linear(363 * len(classes), len(classes))
+            linear_input_size = input_size * self.linea_multiplier + input_features_size * self.linea_multiplier + self.linea_multiplier
+        self.fc_linear = nn.Linear(input_features_size * len(classes), len(classes))
 
         print(f'| N-Beats, device={self.device}')
 
@@ -158,7 +160,8 @@ class Nbeats_alpha(nn.Module):
                  seq_length,
                  device,
                  classes=[],
-                 model_type='alpha'):
+                 model_type='alpha'
+                 input_features_size=363):
         super(Nbeats_alpha, self).__init__()
 
         self.num_classes = num_classes  # number of classes
@@ -178,7 +181,8 @@ class Nbeats_alpha(nn.Module):
                                        thetas_dims=(32, 32),
                                        device=device,
                                        classes=self.classes,
-                                       hidden_layer_units=self.hidden_size)
+                                       hidden_layer_units=self.hidden_size,
+                                       input_features_size=input_features_size)
 
         self.nbeats_alpha2 = NBeatsNet(stack_types=[NBeatsNet.GENERIC_BLOCK],
                                        nb_blocks_per_stack=self.num_layers,
@@ -187,14 +191,15 @@ class Nbeats_alpha(nn.Module):
                                        thetas_dims=(32, 32),
                                        device=device,
                                        classes=self.classes,
-                                       hidden_layer_units=hidden_size)
+                                       hidden_layer_units=hidden_size,
+                                       input_features_size=input_features_size)
 
         self.fc_1 = nn.Linear(self.input_size * 555, 128)  # hidden_size, 128)  # fully connected 1
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
 
-    def forward(self, rr_x, rr_wavelets):
-        _, output_alpha1 = self.nbeats_alpha1(rr_x)  # lstm with input, hidden, and internal state
-        _, output_alpha2 = self.nbeats_alpha2(rr_wavelets)  # lstm with input, hidden, and internal state
+    def forward(self, alpha1_input, alpha2_input):
+        _, output_alpha1 = self.nbeats_alpha1(alpha1_input)  # lstm with input, hidden, and internal state
+        _, output_alpha2 = self.nbeats_alpha2(alpha2_input)  # lstm with input, hidden, and internal state
 
         tmp = torch.hstack((output_alpha1, output_alpha2))
         tmp = torch.flatten(tmp, start_dim=1)
@@ -245,8 +250,8 @@ class Nbeats_beta(nn.Module):
         self.fc = nn.Linear(input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
 
-    def forward(self, pca_features):
-        _, output_beta = self.nbeats_beta(pca_features)  # lstm with input, hidden, and internal state
+    def forward(self, beta_input):
+        _, output_beta = self.nbeats_beta(beta_input)  # lstm with input, hidden, and internal state
 
         tmp = torch.squeeze(output_beta)
         out = self.relu(tmp)  # relu
@@ -278,8 +283,6 @@ class LSTM_ECG(nn.Module):
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
         print(f'| LSTM_ECG')
 
-        # self.lstm = nn.LSTM(input_size, hidden_size, bidirectional=True, batch_first=True)
-        # The linear layer that maps from hidden state space to tag space
         self.lstm_alpha1 = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
                                    num_layers=num_layers, batch_first=True, bidirectional=False)
         if model_type == 'alpha':
@@ -302,24 +305,24 @@ class LSTM_ECG(nn.Module):
 
         self.relu = nn.ReLU()
 
-    def forward(self, rr_x=None, rr_wavelets=None):
+    def forward(self, alpha1_input=None, alpha2_input=None):
         if self.model_type == 'alpha':
             h_0 = autograd.Variable(
-                torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
+                torch.zeros(self.num_layers * self.when_bidirectional, alpha1_input.size(0), self.hidden_size,
                             device=self.device))  # hidden state
             c_0 = autograd.Variable(
-                torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
+                torch.zeros(self.num_layers * self.when_bidirectional, alpha1_input.size(0), self.hidden_size,
                             device=self.device))  # internal state
             h_1 = autograd.Variable(
-                torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
+                torch.zeros(self.num_layers * self.when_bidirectional, alpha1_input.size(0), self.hidden_size,
                             device=self.device))  # hidden state
             c_1 = autograd.Variable(
-                torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
+                torch.zeros(self.num_layers * self.when_bidirectional, alpha1_input.size(0), self.hidden_size,
                             device=self.device))  # internal state
 
-            output_alpha1, (hn_alpha1, cn) = self.lstm_alpha1(rr_x,
+            output_alpha1, (hn_alpha1, cn) = self.lstm_alpha1(alpha1_input,
                                                               (h_0, c_0))  # lstm with input, hidden, and internal state
-            output_alpha2, (hn_alpha2, cn) = self.lstm_alpha2(rr_wavelets,
+            output_alpha2, (hn_alpha2, cn) = self.lstm_alpha2(alpha2_input,
                                                               (h_1, c_1))  # lstm with input, hidden, and internal state
             tmp = torch.hstack((output_alpha1, output_alpha2))
             tmp = torch.flatten(tmp, start_dim=1)
@@ -329,15 +332,15 @@ class LSTM_ECG(nn.Module):
             out = self.fc(out)  # Final Output
             return out
         else:
-            rr_wavelets=rr_x #as we pass only one argument which is pca vector in fact
+            alpha2_input=alpha1_input #as we pass only one argument which is pca vector in fact
             h_0 = autograd.Variable(
-                torch.zeros(self.num_layers * self.when_bidirectional, rr_wavelets.size(0), self.hidden_size,
+                torch.zeros(self.num_layers * self.when_bidirectional, alpha2_input.size(0), self.hidden_size,
                             device=self.device))  # hidden state
             c_0 = autograd.Variable(
-                torch.zeros(self.num_layers * self.when_bidirectional, rr_wavelets.size(0), self.hidden_size,
+                torch.zeros(self.num_layers * self.when_bidirectional, alpha2_input.size(0), self.hidden_size,
                             device=self.device))  # internal state
 
-            output_beta, (hn_beta, cn) = self.lstm_alpha1(rr_wavelets, (h_0, c_0))
+            output_beta, (hn_beta, cn) = self.lstm_alpha1(alpha2_input, (h_0, c_0))
 
             out = torch.flatten(output_beta, start_dim=1)
             out = self.relu(out)  # relu
@@ -380,14 +383,14 @@ class GRU_ECG_ALPHA(nn.Module):
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
         self.relu = nn.ReLU()
 
-    def forward(self, rr_x, rr_wavelets):
-        h_0 = autograd.Variable(torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
+    def forward(self, alpha1_input, alpha2_input):
+        h_0 = autograd.Variable(torch.zeros(self.num_layers * self.when_bidirectional, alpha1_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
-        h_1 = autograd.Variable(torch.zeros(self.num_layers * self.when_bidirectional, rr_x.size(0), self.hidden_size,
+        h_1 = autograd.Variable(torch.zeros(self.num_layers * self.when_bidirectional, alpha1_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
 
-        output_alpha1, hn_alpha1 = self.gru_alpha1(rr_x, h_0)  # lstm with input, hidden, and internal state
-        output_alpha2, hn_alpha2 = self.gru_alpha2(rr_wavelets, h_1)  # lstm with input, hidden, and internal state
+        output_alpha1, hn_alpha1 = self.gru_alpha1(alpha1_input, h_0)  # lstm with input, hidden, and internal state
+        output_alpha2, hn_alpha2 = self.gru_alpha2(alpha2_input, h_1)  # lstm with input, hidden, and internal state
         tmp = torch.hstack((output_alpha1, output_alpha2))
         tmp = torch.flatten(tmp, start_dim=1)
 
@@ -421,32 +424,25 @@ class GRU_ECG_BETA(nn.Module):
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
         print(f'| GRU_ECG_BETA')
 
-        # self.lstm = nn.LSTM(input_size, hidden_size, bidirectional=True, batch_first=True)
-        # The linear layer that maps from hidden state space to tag space
         self.linea_multiplier = input_size
         if input_size > 6:
             self.linea_multiplier = 6
-        # self.hidden_size=1
-        # self.num_layers=1
         self.input_size = 1
         self.gru_beta = nn.GRU(input_size=self.input_size, hidden_size=self.hidden_size,
                                num_layers=self.num_layers, batch_first=True, bidirectional=False)
-        # self.fc_1 = nn.Linear(hidden_size, 1)
         self.fc = nn.Linear(
             (input_size * self.linea_multiplier + 370 * self.linea_multiplier + self.linea_multiplier) * hidden_size,
             num_classes)
         self.relu = nn.ReLU()
 
-    def forward(self, pca_features):
+    def forward(self, beta_input):
         h_0 = autograd.Variable(
-            torch.zeros(self.num_layers * self.when_bidirectional, pca_features.size(0), self.hidden_size,
+            torch.zeros(self.num_layers * self.when_bidirectional, beta_input.size(0), self.hidden_size,
                         device=self.device))  # hidden state
-        output_beta, hn_beta = self.gru_beta(pca_features, h_0)
+        output_beta, hn_beta = self.gru_beta(beta_input, h_0)
 
-        # out = torch.squeeze(output_beta)
         out = torch.flatten(output_beta, start_dim=1)
         out = self.relu(out)  # relua
-        # out = self.fc_1(out)
         out = self.fc(out)  # Final Output
         return out
 
@@ -537,20 +533,20 @@ class LSTMPeephole_ALPHA(nn.Module):
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
         self.relu = nn.ReLU()
 
-    def forward(self, rr_x, rr_wavelets):
-        h_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
+    def forward(self, alpha1_input, alpha2_input):
+        h_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
-        c_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
+        c_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
                                             device=self.device))  # internal state
-        h_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
+        h_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
-        c_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
+        c_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
                                             device=self.device))  # internal state
 
 
-        oa1, _ = self.lstmpeephole_alpha1(rr_x,
+        oa1, _ = self.lstmpeephole_alpha1(alpha1_input,
                                                    (h_0, c_0))  # lstm with input, hidden, and internal state
-        oa2, _ = self.lstmpeephole_alpha2(rr_wavelets,
+        oa2, _ = self.lstmpeephole_alpha2(alpha2_input,
                                                    (h_1, c_1))  # lstm with input, hidden, and internal state
 
         tmp = torch.hstack((oa1, oa2))
@@ -604,15 +600,15 @@ class LSTMPeephole_BETA(nn.Module):
             num_classes)
         self.relu = nn.ReLU()
 
-    def forward(self, pca_features):
-        h_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
+    def forward(self, beta_input):
+        h_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
 
-        c_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
+        c_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
 
 
-        oa1, _  = self.lstmpeephole_beta(pca_features,
+        oa1, _  = self.lstmpeephole_beta(beta_input,
                                                  (h_0, c_0))  # lstm with input, hidden, and internal state
 
         out = torch.flatten(oa1, start_dim=1)
@@ -713,19 +709,19 @@ class CustomLSTMPeephole_ALPHA(nn.Module):
         self.fc = nn.Linear(128, num_classes)  # fully connected last layer
         self.relu = nn.ReLU()
 
-    def forward(self, rr_x, rr_wavelets):
-        h_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
+    def forward(self, alpha1_input, alpha2_input):
+        h_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
-        c_0 = autograd.Variable(torch.zeros(rr_x.size(0), self.hidden_size,
+        c_0 = autograd.Variable(torch.zeros(alpha1_input.size(0), self.hidden_size,
                                             device=self.device))  # internal state
-        h_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
+        h_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
-        c_1 = autograd.Variable(torch.zeros(rr_wavelets.size(0), self.hidden_size,
+        c_1 = autograd.Variable(torch.zeros(alpha2_input.size(0), self.hidden_size,
                                             device=self.device))  # internal state
 
         output = []
-        oa1, (h_0, c_0) = self.lstmpeephole_alpha1(rr_x, (h_0, c_0))  # lstm with input, hidden, and internal state
-        oa2, (h_1, c_1) = self.lstmpeephole_alpha2(rr_wavelets, (h_1, c_1))  # lstm with input, hidden, and internal state
+        oa1, (h_0, c_0) = self.lstmpeephole_alpha1(alpha1_input, (h_0, c_0))  # lstm with input, hidden, and internal state
+        oa2, (h_1, c_1) = self.lstmpeephole_alpha2(alpha2_input, (h_1, c_1))  # lstm with input, hidden, and internal state
 
         tmp = torch.hstack((oa1, oa2))
         tmp = torch.flatten(tmp, start_dim=1)
@@ -765,8 +761,6 @@ class CustomLSTMPeephole_BETA(nn.Module):
         self.linea_multiplier = input_size
         if input_size > 6:
             self.linea_multiplier = 6
-        #self.hidden_size=1
-        #self.num_layers=1
         self.input_size = 1
 
         self.lstmpeephole_beta = CustomLSTMPeephole(input_size=self.input_size, hidden_size=self.hidden_size)
@@ -776,14 +770,14 @@ class CustomLSTMPeephole_BETA(nn.Module):
             num_classes)
         self.relu = nn.ReLU()
 
-    def forward(self, pca_features):
-        h_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
+    def forward(self, beta_input):
+        h_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
 
-        c_0 = autograd.Variable(torch.zeros(pca_features.size(0), self.hidden_size,
+        c_0 = autograd.Variable(torch.zeros(beta_input.size(0), self.hidden_size,
                                             device=self.device))  # hidden state
 
-        oa1, (h_0, c_0) = self.lstmpeephole_beta(pca_features, (h_0, c_0))  # lstm with input, hidden, and internal state
+        oa1, (h_0, c_0) = self.lstmpeephole_beta(beta_input, (h_0, c_0))  # lstm with input, hidden, and internal state
 
         out = torch.flatten(oa1, start_dim=1)
         out = self.relu(out)  # relu
@@ -799,10 +793,9 @@ class BlendMLP(nn.Module):
         self.classes = classes
         self.linear = nn.Linear(2 * len(classes), len(classes))
 
-    def forward(self, rr_x, rr_wavelets, pca_features):
-        x1 = self.modelA(rr_x, rr_wavelets)
-        #x2 = self.modelB(rr_x, pca_features) # FOR LSTM
-        x2 = self.modelB(pca_features)  # FOR NBEATS, PEEPHOLE and GRU
+    def forward(self, alpha1_input, alpha2_input, beta_input):
+        x1 = self.modelA(alpha1_input, alpha2_input)
+        x2 = self.modelB(beta_input)
 
         if x1.shape == x2.shape:
             out = torch.cat((x1, x2), dim=1)
@@ -833,7 +826,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         device=device,
                         model_type=as_branch,
                         classes=selected_classes)
-    
+
     if network == "LSTM":
         return LSTM_ECG(input_size=len(leads),
             num_classes=len(selected_classes),
@@ -843,7 +836,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
             device=device,
             model_type=as_branch,
             classes=selected_classes)
-    
+
     if network == "LSTM_PEEPHOLE":
         if as_branch == "alpha":
             return LSTMPeephole_ALPHA(input_size=len(leads),

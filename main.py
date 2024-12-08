@@ -27,8 +27,13 @@ parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", acti
 parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
 parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
 parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
+parser.add_argument("--include-domain", help = "Include domain knowledge", action=argparse.BooleanOptionalAction, default=False)
 parser.add_argument("-l", "--leads", choices={"2","3", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
 parser.add_argument('--network', choices={"LSTM", "NBEATS", "GRU"}, help="Select network to train", default="NBEATS")
+parser.add_argument( "--alpha-hidden", help = "Hidden size of alpha branch", default=7, type=int)
+parser.add_argument( "--alpha-layers", help = "Number of layers of alpha branch", default=2, type=int)
+parser.add_argument( "--beta-hidden", help = "Hidden size of beta branch", default=7, type=int)
+parser.add_argument( "--beta-layers", help = "Number of layers of beta branch", default=2, type=int)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -45,6 +50,12 @@ remove_baseline = args.remove_baseline
 fold_to_process = args.fold
 selected_leads_flag = args.leads
 network_name = args.network
+include_domain = args.include_domain
+alpha_hidden=args.alpha_hidden
+alpha_layers=args.alpha_layers
+beta_hidden=args.beta_hidden
+beta_layers=args.beta_layers
+
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
@@ -55,8 +66,8 @@ def task_prepare_datasets(params):
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
-    alpha_config = BranchConfig(network_name, 7, 2, window_size)
-    beta_config = BranchConfig(network_name, 7, 2, window_size)
+    alpha_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size)
+    beta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size)
 
     if clean_datasets_var:
         clean_datasets_directory()
@@ -144,12 +155,12 @@ def main():
         training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
         validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
         networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
-        trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag])
+        trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
         trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
         logger.info(f"Loaded model: {trained_model}")
         test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
-        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], remove_baseline, name)
+        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], remove_baseline, include_domain, experiment_name=name)
         logger.info("Saving results to json file")
         results.save_json(f"results/{name}/{datetime.today().strftime('%Y-%m-%d')}/fold_{fold}_{datetime.today().strftime('%H:%M:%S')}.json")
 

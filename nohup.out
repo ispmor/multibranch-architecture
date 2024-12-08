@@ -1,0 +1,51 @@
+Traceback (most recent call last):
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/main.py", line 2, in <module>
+    from training.network_trainer import NetworkTrainer, TrainingConfig
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/training/__init__.py", line 1, in <module>
+    from .network_trainer import *
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/training/network_trainer.py", line 3, in <module>
+    from utilities import batch_preprocessing
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/utilities/__init__.py", line 1, in <module>
+    from .utility_functions import *
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/utilities/utility_functions.py", line 13, in <module>
+    from .data_processing import *
+ModuleNotFoundError: No module named 'utilities.data_processing'
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+Traceback (most recent call last):
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/main.py", line 161, in <module>
+    main()
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/main.py", line 124, in main
+    utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/utilities/utility_functions.py", line 142, in prepare_h5_dataset
+    local_training_counts = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, leads,
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/utilities/utility_functions.py", line 363, in create_hdf5_db
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+  File "<frozen os>", line 225, in makedirs
+FileNotFoundError: [Errno 2] No such file or directory: ''
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+| N-Beats, device=cpu
+| --  Stack Generic (#0) (share_weights_in_stack=False)
+     | -- GenericBlock(units=7, thetas_dim=32, backcast_length=12, forecast_length=26, share_thetas=False) at @6116383616
+     | -- GenericBlock(units=7, thetas_dim=32, backcast_length=12, forecast_length=26, share_thetas=False) at @6126546544
+| N-Beats, device=cpu
+| --  Stack Generic (#0) (share_weights_in_stack=False)
+     | -- GenericBlock(units=7, thetas_dim=32, backcast_length=12, forecast_length=26, share_thetas=False) at @6129990592
+     | -- GenericBlock(units=7, thetas_dim=32, backcast_length=12, forecast_length=26, share_thetas=False) at @6129989536
+| N-Beats, device=cpu
+| --  Stack Generic (#0) (share_weights_in_stack=False)
+     | -- GenericBlock(units=7, thetas_dim=32, backcast_length=1, forecast_length=26, share_thetas=False) at @6130208064
+     | -- GenericBlock(units=7, thetas_dim=32, backcast_length=1, forecast_length=26, share_thetas=False) at @6130208544
+Traceback (most recent call last):
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/main.py", line 161, in <module>
+    main()
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/main.py", line 149, in main
+    trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/training/network_trainer.py", line 100, in train
+    epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/puszkarb/phd/phd_nbeats_with_feature_vector/training/network_trainer.py", line 55, in train_network
+    forecast = model(x.to(self.training_config.device), wavelet_features.to(self.training_config.device), pca_features.to(self.training_config.device))
+                                                                                                          ^^^^^^^^^^^^
+NameError: name 'pca_features' is not defined. Did you mean: 'rr_features'?

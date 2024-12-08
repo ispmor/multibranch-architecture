@@ -3,12 +3,14 @@ import neurokit2 as nk
 from networks.model import BlendMLP, get_BlendMLP
 from pywt import wavedec
 from challenge import *
+from utilities.data_preprocessing import batch_preprocessing
 from utilities.results_handling import ResultHandler
 from .pan_tompkins_detector import *
 from torch.utils import data as torch_data
 from torch.nn.functional import sigmoid
 from .config import *
 from .results_handling import *
+from .data_preprocessing import *
 import numpy as np
 import logging
 import torch
@@ -246,17 +248,15 @@ class UtilityFunctions:
 
         rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
 
-
         try:
             domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks  )
             rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)])[np.newaxis, :, :], x.shape[0], axis=0)
             return rr_features, x, coeffs
         except Exception as e:
             logger.warn(f"Currently processed file: {header_file}, issue:{e}")
-        
+
         return rr_features, x, coeffs
-    
-    
+
 
 
     def get_wavelet_features(self, signal, wavelet):
@@ -355,21 +355,15 @@ class UtilityFunctions:
             group = 'validation'
         else:
             group = 'validation2'
-   
 
-        headers_included_in_db= []
-        recordings_included_in_db= []
-    
         if not filename:
             filename = f'cinc_database_{group}.h5'
-    
- 
+
+
         os.makedirs(os.path.dirname(filename), exist_ok=True)
- 
+
         with h5py.File(filename, 'w') as h5file:
-    
             grp = h5file.create_group(group)
-    
             dset = grp.create_dataset("data", (1, len(leads), self.window_size),
                                       maxshape=(None, len(leads), self.window_size), dtype='f',
                                       chunks=(1, len(leads), self.window_size))
@@ -380,7 +374,7 @@ class UtilityFunctions:
             waveset = grp.create_dataset("wavelet_features", (1, len(leads), 185), maxshape=(None, len(leads), 185),
                                          dtype='f',
                                          chunks=(1, len(leads), 185))
-    
+
             counter = 0
             avg_processing_times = []
             for i in num_recordings:
@@ -392,7 +386,7 @@ class UtilityFunctions:
                 # Load header and recording.
                 header = load_header(header_files[i])
                 current_labels= self.clean_labels(header)
-  
+
                 if isTraining < 2:
                     s1 = set(current_labels)
                     s2 = set(selected_classes)
@@ -440,7 +434,7 @@ class UtilityFunctions:
                 label_pack = [local_label for i in range(recording_full.shape[0])]
                 lset.resize(lset.shape[0] + new_windows, axis=0)
                 lset[-new_windows:] = label_pack
-    
+                
                 rrset.resize(rrset.shape[0] + new_windows, axis=0)
                 rrset[-new_windows:] = rr_features
     
@@ -464,7 +458,7 @@ class UtilityFunctions:
         return classes_numbers
 
 
-    def run_model(self, model: BlendMLP, header, recording, remove_baseline):
+    def run_model(self, model: BlendMLP, header, recording, remove_baseline, include_domain=True):
         classes = model.classes
         leads = model.leads
 
@@ -491,6 +485,7 @@ class UtilityFunctions:
         logger.debug(f"Wavelets_features from one_file_training_data: {wavelet_features.shape}")
         logger.debug(f"First dimension of wavelets_features: {wavelet_features[0]}")
 
+        batch = (x_features, None, rr_features, wavelet_features)
         # Predict labels and probabilities.
         if len(x_features) == 0:
             labels = np.zeros(len(classes))
@@ -498,27 +493,20 @@ class UtilityFunctions:
             labels=probabilities_mean > 0.5
             return classes, labels, probabilities_mean, 0
         else:
-            x = torch.transpose(x_features, 1, 2)
-            rr_features = torch.transpose(rr_features, 1, 2)
-            wavelet_features = torch.transpose(wavelet_features, 1, 2)
+            x, _, rr_features, wavelet_features, rr_x, rr_wavelets = batch_preprocessing(batch)
 
             logger.debug(f"X Shape after transpose: {x.shape}")
             logger.debug(f"RR_Features after transpose: {rr_features.shape}")
             logger.debug(f"Wavelets_features after transpose: {wavelet_features.shape}")
-    
-            rr_x = torch.hstack((rr_features, x))
-            rr_wavelets = torch.hstack((rr_features, wavelet_features))
-    
-            pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
-            pca_features = torch.pca_lowrank(pre_pca)
-            pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
-                                         pca_features[2].reshape(pca_features[2].shape[0], -1)))
-            pca_features = pca_features[:, :, None]
-    
             with torch.no_grad():
-                start = time.time()
-                scores = model(rr_x.to(self.device), rr_wavelets.to(self.device), pca_features.to(self.device))
-                end = time.time()
+                if include_domain:
+                    start = time.time()
+                    scores = model(rr_x.to(self.device), rr_wavelets.to(self.device), pca_features.to(self.device))
+                    end = time.time()
+                else:
+                    start = time.time()
+                    scores = model(x.to(self.device), wavelet_features.to(self.device), pca_features.to(self.device))
+                    end = time.time()
                 peak_time = (end - start) / len(peaks)
                 del rr_x, rr_wavelets, rr_features, x, pca_features, pre_pca
                 probabilities = sigmoid(scores)
@@ -573,7 +561,7 @@ class UtilityFunctions:
     
 
 
-    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, experiment_name="",  num_classes=26  )-> ResultHandler:
+    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, include_domain,  experiment_name="",  num_classes=26  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
         scalar_outputs = np.ndarray((len(header_files), num_classes))
         binary_outputs = [[] for _ in range(len(header_files))]
@@ -586,7 +574,7 @@ class UtilityFunctions:
         for i,header_filename in enumerate(header_files):
             header = load_header(header_filename)
             recording = load_recording(recording_files[i])
-            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, remove_baseline=remove_baseline)
+            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, remove_baseline=remove_baseline, include_domain=include_domain)
             logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")
         logger.info(f"#####   Fold={fold}, Leads: {len(leads)}")

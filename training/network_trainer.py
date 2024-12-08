@@ -1,6 +1,6 @@
 from re import A
 from networks.model import BlendMLP
-import utilities
+from utilities import batch_preprocessing
 
 import torch
 import logging
@@ -39,45 +39,22 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    #TODO perform cleanup of train_network, validate_network and test_network to include batch preprocessing. Consider if batches loaded from data_loader should not be already preprocessed. 
-    def batch_preprocessing(batch):
-        x, y, rr_features, wavelet_features = batch
-        x = torch.transpose(x, 1, 2)
-        rr_features = torch.transpose(rr_features, 1, 2)
-        wavelet_features = torch.transpose(wavelet_features, 1, 2)
-        rr_x = torch.hstack((rr_features, x))
-        rr_wavelets = torch.hstack((rr_features, wavelet_features))
-        pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
-        pca_features = torch.pca_lowrank(pre_pca)
-        pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
-                                        pca_features[2].reshape(pca_features[2].shape[0], -1)))
-        pca_features = pca_features[:, :, None]
-
-        return x, y, rr_features, wavelet_features
-
-
-
-
-    def train_network(self, model, training_data_loader, epoch):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         local_step = 0
         epoch_loss = []
         model.to(self.training_config.device)
-        for x, y, rr_features, wavelet_features in training_data_loader:
-            x = torch.transpose(x, 1, 2)
-            rr_features = torch.transpose(rr_features, 1, 2)
-            wavelet_features = torch.transpose(wavelet_features, 1, 2)
-            rr_x = torch.hstack((rr_features, x))
-            rr_wavelets = torch.hstack((rr_features, wavelet_features))
-            pre_pca = torch.nan_to_num(torch.hstack((rr_features, x[:, ::2, :], wavelet_features)))
-            pca_features = torch.pca_lowrank(pre_pca)
-            pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1], pca_features[2].reshape(pca_features[2].shape[0], -1)))
-            pca_features = pca_features[:, :, None]
+        for batch in training_data_loader:
+            x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch)
             local_step += 1
             model.train()
-            forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
-            logger.debug(f"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nShape of rr_features: {rr_features.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
-            #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device)
+            if include_domain:
+                forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
+                logger.debug(f"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nShape of rr_features: {rr_features.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
+            else:
+                forecast = model(x.to(self.training_config.device), wavelet_features.to(self.training_config.device), pca_features.to(self.training_config.device))
+                logger.debug(f"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
+
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
@@ -94,25 +71,20 @@ class NetworkTrainer:
 
 
 
-    def validate_network(self, model, validation_data_loader, epoch):
+    def validate_network(self, model, validation_data_loader, epoch, include_domain=True):
         logger.info(f"Entering validation, epoch: {epoch}")
         epoch_loss = []
         model.to(self.training_config.device)
         with torch.no_grad():
             model.eval()
-            for x, y, rr_features, wavelet_features in validation_data_loader:
-                x = torch.transpose(x, 1, 2)
-                rr_features = torch.transpose(rr_features, 1, 2)
-                wavelet_features = torch.transpose(wavelet_features, 1, 2)
-                rr_x = torch.hstack((rr_features, x))
-                rr_wavelets = torch.hstack((rr_features, wavelet_features))
-                pre_pca = torch.hstack((rr_features, x[:, ::2, :], wavelet_features))
-                pca_features = torch.pca_lowrank(pre_pca)
-                pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1], pca_features[2].reshape(pca_features[2].shape[0], -1)))
-                pca_features = pca_features[:, :, None]
-                forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
-                # , rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
-                #y_selected = torch.tensor(y.clone().detach(), self.training_config.device=self.training_config.device) # <- zmienione
+            for batch in validation_data_loader:
+                x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch)
+
+                if include_domain:
+                    forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
+                else:
+                    forecast = model(x.to(self.training_config.device), wavelet_features.to(self.training_config.device), pca_features.to(self.training_config.device))
+
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
                 epoch_loss.append(loss)
         return torch.mean(torch.stack(epoch_loss))
@@ -120,13 +92,13 @@ class NetworkTrainer:
 
 
 
-    def train(self, blendModel, alpha_config, beta_config, training_data_loader, validation_data_loader, fold, leads):
+    def train(self, blendModel, alpha_config, beta_config, training_data_loader, validation_data_loader, fold, leads, include_domain):
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch)
-            epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch)
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
+            epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
             logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
             logger.info(f"not improving since: {epochs_no_improve}")
