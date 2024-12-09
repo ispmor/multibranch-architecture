@@ -508,7 +508,7 @@ class UtilityFunctions:
                     scores = model(x.to(self.device), wavelet_features.to(self.device), pca_features.to(self.device))
                     end = time.time()
                 peak_time = (end - start) / len(peaks)
-                del rr_x, rr_wavelets, rr_features, x, pca_features, pre_pca
+                del rr_x, rr_wavelets, rr_features, x, pca_features
                 probabilities = sigmoid(scores)
                 probabilities_mean = torch.mean(probabilities, 0).detach().cpu().numpy()
                 labels = probabilities_mean > 0.5

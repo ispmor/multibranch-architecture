@@ -5,8 +5,8 @@
 
 
 ## Experiments:
-- [] LSTM,(7;2),  12 LEADS, No domain knowledge, BW Removed 
-- [] LSTM,(7;2),  12 LEADS, No domain knowledge, BW NOT Removed 
+- [...] LSTM,(7;2),  12 LEADS, No domain knowledge, BW Removed 
+- [...] LSTM,(7;2),  12 LEADS, No domain knowledge, BW NOT Removed 
 - [] LSTM,(7;2),  2 LEADS, No domain knowledge, BW Removed 
 - [] LSTM,(7;2),  2 LEADS, No domain knowledge, BW NOT Removed 
 - [] LSTM,(17;12),  12 LEADS, WITH domain knowledge, BW Removed 
