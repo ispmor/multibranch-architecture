@@ -592,6 +592,6 @@ class UtilityFunctions:
         logger.info("########################################################")
 
         binary_outputs_list = [x.tolist() for x in binary_outputs]
-        return ResultHandler(c,labels, binary_outputs_list, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric, leads, fold, experiment_name)
+        return ResultHandler(c,labels, binary_outputs_list, scalar_outputs, times, auroc, auprc, auroc_classes, auprc_classes, f_measure, f_measure_classes, challenge_metric, leads, fold, experiment_name, accuracy=accuracy)
 
 
