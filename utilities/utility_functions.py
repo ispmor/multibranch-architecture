@@ -305,7 +305,7 @@ class UtilityFunctions:
                 signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
             except Exception as e:
                 logger.warn(e)
-                logger.warn(f"Comming from: \n{header}")
+                logger.debug(f"Comming from: \n{header}")
                 #return (None, None, None, None)
 
             signals[lead_name] = signal
@@ -493,22 +493,17 @@ class UtilityFunctions:
             labels=probabilities_mean > 0.5
             return classes, labels, probabilities_mean, 0
         else:
-            x, _, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch, include_domain)
+            alpha1_input, alpha2_input, beta_input, _= batch_preprocessing(batch, include_domain)
 
-            logger.debug(f"X Shape after transpose: {x.shape}")
-            logger.debug(f"RR_Features after transpose: {rr_features.shape}")
-            logger.debug(f"Wavelets_features after transpose: {wavelet_features.shape}")
+            logger.debug(f"Alpha1 input shape after transpose: {alpha1_input.shape}")
+            logger.debug(f"Alpha2 input shape after transpose: {alpha2_input.shape}")
+            logger.debug(f"Beta input after transpose: {beta_input.shape}")
             with torch.no_grad():
-                if include_domain:
-                    start = time.time()
-                    scores = model(rr_x.to(self.device), rr_wavelets.to(self.device), pca_features.to(self.device))
-                    end = time.time()
-                else:
-                    start = time.time()
-                    scores = model(x.to(self.device), wavelet_features.to(self.device), pca_features.to(self.device))
-                    end = time.time()
+                start = time.time()
+                scores = model(alpha1_input.to(self.device), alpha2_input.to(self.device), beta_input.to(self.device))
+                end = time.time()
                 peak_time = (end - start) / len(peaks)
-                del rr_x, rr_wavelets, rr_features, x, pca_features
+                del alpha1_input, alpha2_input, beta_input
                 probabilities = sigmoid(scores)
                 probabilities_mean = torch.mean(probabilities, 0).detach().cpu().numpy()
                 labels = probabilities_mean > 0.5
@@ -555,7 +550,7 @@ class UtilityFunctions:
         model = get_BlendMLP(alpha_config, beta_config, classes,device, leads=leads)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
-        model.cuda(device)
+        model.to(device)
         logger.info(f'Restored checkpoint from {filename}.') 
         return model
     

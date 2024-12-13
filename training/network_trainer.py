@@ -1,4 +1,6 @@
 from re import A
+
+from scipy.stats import alpha
 from networks.model import BlendMLP
 from utilities import batch_preprocessing
 
@@ -45,15 +47,10 @@ class NetworkTrainer:
         epoch_loss = []
         model.to(self.training_config.device)
         for batch in training_data_loader:
-            x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch, include_domain)
+            alpha1_input, alpha2_input, beta_input, y = batch_preprocessing(batch, include_domain)
             local_step += 1
             model.train()
-            if include_domain:
-                forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
-                logger.debug(f"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nShape of rr_features: {rr_features.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
-            else:
-                forecast = model(x.to(self.training_config.device), wavelet_features.to(self.training_config.device), pca_features.to(self.training_config.device))
-                logger.debug(f"Shape of x: {x.shape}\nShape of y: {y.shape}\nForecast shape: {forecast.shape}\nWavelets feature shape: {wavelet_features.shape}\nPCA Features shape: {pca_features.shape}")
+            forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
             epoch_loss.append(loss)
@@ -78,12 +75,8 @@ class NetworkTrainer:
         with torch.no_grad():
             model.eval()
             for batch in validation_data_loader:
-                x, y, rr_features, wavelet_features, rr_x, rr_wavelets, pca_features = batch_preprocessing(batch, include_domain)
-
-                if include_domain:
-                    forecast = model(rr_x.to(self.training_config.device), rr_wavelets.to(self.training_config.device), pca_features.to(self.training_config.device))
-                else:
-                    forecast = model(x.to(self.training_config.device), wavelet_features.to(self.training_config.device), pca_features.to(self.training_config.device))
+                alpha1_input, alpha2_input, beta_input, y = batch_preprocessing(batch, include_domain)
+                forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device))
 
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
                 epoch_loss.append(loss)
