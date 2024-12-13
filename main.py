@@ -158,6 +158,9 @@ def main():
         networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
         trained_model_name= networkTrainer.train(blendModel, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
+        del blendModel, training_data_loader, validation_data_loader
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
         logger.info(f"Loaded model: {trained_model}")
         test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
