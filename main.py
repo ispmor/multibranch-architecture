@@ -22,7 +22,8 @@ parser.add_argument("-t", "--target", help = "Target directory for H5 Datasets",
 parser.add_argument("-g", "--gpu", help = "GPU number", default="1")
 parser.add_argument("-f", "--fold", help = "FOLD numberto be processed", default="")
 parser.add_argument("-m", "--model", help = "Models directory")
-parser.add_argument("-w", "--window_size", help = "Window size for peak analysis", default=350, type=int)
+parser.add_argument("--window-size", help = "Window size for peak analysis", default=350, type=int)
+parser.add_argument("--wavelet-features-size", help = "Wavelet feature vector size", default=185, type=int)
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
 parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
 parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
@@ -44,6 +45,7 @@ gpu_number = args.gpu
 models_dir = args.model
 clean_datasets_var=args.clean
 window_size = args.window_size
+wavelet_features_size=args.wavelet_features_size
 name = args.name
 debug_mode = args.debug
 remove_baseline = args.remove_baseline
@@ -66,7 +68,6 @@ def task_prepare_datasets(params):
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
-    wavelet_features_size=185
     alpha_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, window_size, wavelet_features_size)
     beta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=(window_size // 2 + wavelet_features_size))
 
