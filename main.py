@@ -171,7 +171,7 @@ def main():
         test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
         results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], remove_baseline, include_domain, experiment_name=name)
         logger.info("Saving results to json file")
-        results.save_json(f"results/{name}/{datetime.today().strftime('%Y-%m-%d')}/fold_{fold}_{datetime.today().strftime('%H:%M:%S')}.json")
+        results.save_json(f"results/{name}/{date}/fold_{fold}.json")
 
         del trained_model
 

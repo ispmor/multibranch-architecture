@@ -34,7 +34,7 @@ for file in sorted(os.listdir(directory)):
             auroc.append(loaded['auroc'])
             aurpc.append(loaded['auprc'])
             time.append(np.mean(loaded['times']))
-            accuracy.append(0)
+            accuracy.append(loaded['accuracy'])
             fmeasure.append(loaded['f_measure'])
             challenge.append(loaded['challenge_metric'])
     else:
