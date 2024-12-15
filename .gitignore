@@ -4,6 +4,9 @@ models_repository/
 results/
 nohup.out
 
+out/
+dump/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
