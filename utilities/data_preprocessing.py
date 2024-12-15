@@ -5,7 +5,7 @@ import torch
 logger = logging.getLogger(__name__)
 
 
-def batch_preprocessing(batch, include_domain=True):
+def batch_preprocessing(batch, include_domain):
     return domain_on_all_or_none(batch, include_domain)
 
 def domain_on_all_or_none(batch, include_domain):

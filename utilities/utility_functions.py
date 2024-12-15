@@ -458,7 +458,7 @@ class UtilityFunctions:
         return classes_numbers
 
 
-    def run_model(self, model: BlendMLP, header, recording, remove_baseline, include_domain=True):
+    def run_model(self, model: BlendMLP, header, recording, remove_baseline, include_domain):
         classes = model.classes
         leads = model.leads
 
