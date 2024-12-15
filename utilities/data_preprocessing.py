@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def batch_preprocessing(batch, include_domain):
-    return domain_on_all_or_none(batch, include_domain)
+    return domain_at_beta_only(batch)
 
 def domain_on_all_or_none(batch, include_domain):
     x, y, rr_features, wavelet_features = batch
@@ -53,7 +53,10 @@ def domain_at_beta_only(batch):
     pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1],
                                     pca_features[2].reshape(pca_features[2].shape[0], -1)))
     logger.debug(f"PCA SHAPE after initial hstack: {pca_features.shape}")
-    pca_features = torch.hstack((pca_features, rr_features))
+    logger.debug(f"RR_features shape: {rr_features.shape}")
+    rr_flat = torch.flatten(rr_features, start_dim=1)
+    logger.debug(f"flattened shape: {rr_flat.shape}")
+    pca_features = torch.hstack((pca_features, rr_flat))
     
     logger.debug(f"PCA SHAPE adter adding rr features: {pca_features.shape}")
 
