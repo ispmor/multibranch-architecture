@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def batch_preprocessing(batch, include_domain):
-    return domain_at_beta_only(batch)
+    return domain_at_beta_no_pca(batch)
 
 def domain_on_all_or_none(batch, include_domain):
     x, y, rr_features, wavelet_features = batch
@@ -67,5 +67,21 @@ def domain_at_beta_only(batch):
     beta_input = pca_features
 
     logger.debug(f"Shape nf alpha1_input: {alpha1_input.shape}\nShape of alpha2_input: {alpha2_input.shape}\nBeta input shape: {beta_input.shape}\nPCA Features shape: {pca_features.shape}")
+
+    return alpha1_input, alpha2_input, beta_input, y
+
+
+def domain_at_beta_no_pca(batch):
+    x, y, rr_features, wavelet_features = batch
+    x = torch.transpose(x, 1, 2)
+    rr_features = torch.transpose(rr_features, 1, 2)
+    wavelet_features = torch.transpose(wavelet_features, 1, 2)
+    rr_flat = torch.flatten(rr_features, start_dim=1)
+    logger.debug(f"flattened shape: {rr_flat.shape}")
+    alpha1_input = x
+    alpha2_input = wavelet_features
+    beta_input = rr_flat[:, :, None]
+
+    logger.debug(f"Shape nf alpha1_input: {alpha1_input.shape}\nShape of alpha2_input: {alpha2_input.shape}\nBeta input shape: {beta_input.shape}")
 
     return alpha1_input, alpha2_input, beta_input, y
