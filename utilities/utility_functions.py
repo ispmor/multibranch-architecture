@@ -493,14 +493,14 @@ class UtilityFunctions:
             labels=probabilities_mean > 0.5
             return classes, labels, probabilities_mean, 0
         else:
-            alpha1_input, alpha2_input, beta_input, _= batch_preprocessing(batch, include_domain)
+            alpha1_input, alpha2_input, beta_input, rr, _= batch_preprocessing(batch, include_domain)
 
             logger.debug(f"Alpha1 input shape after transpose: {alpha1_input.shape}")
             logger.debug(f"Alpha2 input shape after transpose: {alpha2_input.shape}")
             logger.debug(f"Beta input after transpose: {beta_input.shape}")
             with torch.no_grad():
                 start = time.time()
-                scores = model(alpha1_input.to(self.device), alpha2_input.to(self.device), beta_input.to(self.device))
+                scores = model(alpha1_input.to(self.device), alpha2_input.to(self.device), beta_input.to(self.device), rr.to(self.device))
                 end = time.time()
                 peak_time = (end - start) / len(peaks)
                 del alpha1_input, alpha2_input, beta_input

@@ -363,15 +363,16 @@ class BlendMLP(nn.Module):
         self.modelA = modelA
         self.modelB = modelB
         self.classes = classes
-        self.linear = nn.Linear(2 * len(classes), len(classes))
+        self.linear = nn.Linear(2 * len(classes) + 20, len(classes))
 
-    def forward(self, alpha1_input, alpha2_input, beta_input):
+    def forward(self, alpha1_input, alpha2_input, beta_input, rr):
         x1 = self.modelA(alpha1_input, alpha2_input)
         x2 = self.modelB(beta_input)
 
         if x1.shape == x2.shape:
-            out = torch.cat((x1, x2), dim=1)
-            out = self.linear(F.relu(out))
+            out = F.relu(torch.cat((x1, x2), dim=1))
+            out_with_rr = torch.cat((out, rr), dim=1)
+            out = self.linear(out_with_rr)
             return out
         else:
             return x1

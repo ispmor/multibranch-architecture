@@ -47,10 +47,10 @@ class NetworkTrainer:
         epoch_loss = []
         model.to(self.training_config.device)
         for batch in training_data_loader:
-            alpha1_input, alpha2_input, beta_input, y = batch_preprocessing(batch, include_domain)
+            alpha1_input, alpha2_input, beta_input, rr, y = batch_preprocessing(batch, include_domain)
             local_step += 1
             model.train()
-            forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device))
+            forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device), rr.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
             epoch_loss.append(loss)
@@ -75,8 +75,8 @@ class NetworkTrainer:
         with torch.no_grad():
             model.eval()
             for batch in validation_data_loader:
-                alpha1_input, alpha2_input, beta_input, y = batch_preprocessing(batch, include_domain)
-                forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device))
+                alpha1_input, alpha2_input, beta_input, rr, y = batch_preprocessing(batch, include_domain)
+                forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device), rr.to(self.training_config.device))
 
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
                 epoch_loss.append(loss)
@@ -94,7 +94,6 @@ class NetworkTrainer:
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
             logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
-            logger.info(f"not improving since: {epochs_no_improve}")
             if epoch_validation_loss < min_val_loss:
                 epochs_no_improve = 0
                 min_val_loss = epoch_validation_loss
@@ -108,6 +107,7 @@ class NetworkTrainer:
             if epoch > 10 and epochs_no_improve >= self.training_config.n_epochs_stop:
                 logger.warn(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
                 break
+            logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
 
 
