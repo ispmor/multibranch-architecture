@@ -1,4 +1,5 @@
 import logging
+from scipy.stats import beta
 import torch
 
 
@@ -6,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def batch_preprocessing(batch, include_domain):
-    return domain_at_mlp(batch)
+    return multibranch_division(batch)
 
 def domain_on_all_or_none(batch, include_domain):
     x, y, rr_features, wavelet_features = batch
@@ -111,3 +112,25 @@ def domain_at_mlp(batch):
     logger.debug(f"Shape nf alpha1_input: {alpha1_input.shape}\nShape of alpha2_input: {alpha2_input.shape}\nPCA Features shape: {pca_features.shape}")
 
     return alpha1_input, alpha2_input, beta_input, rr_flat, y
+
+
+def multibranch_division(batch):
+    x, y, rr_features, wavelet_features = batch
+    x = torch.transpose(x, 1, 2)
+    rr_features = torch.transpose(rr_features, 1, 2)
+    wavelet_features = torch.transpose(wavelet_features, 1, 2)
+    pre_pca = torch.hstack((x[:, ::2, :], wavelet_features, rr_features))
+
+
+    pca_features = torch.pca_lowrank(pre_pca)
+    pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1], pca_features[2].reshape(pca_features[2].shape[0], -1)))
+    pca_features = pca_features[:, :, None].repeat(1,1,2)
+
+    alpha_input = x
+    beta_input = wavelet_features
+    gamma_input = pca_features
+    delta_input = rr_features
+
+    logger.debug(f"Shape nf alpha_input: {alpha_input.shape}\nShape of beta_input: {beta_input.shape}\nGamma shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
+
+    return alpha_input, beta_input, gamma_input, delta_input , y

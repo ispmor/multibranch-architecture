@@ -1,6 +1,6 @@
 import h5py
 import neurokit2 as nk
-from networks.model import BlendMLP, get_BlendMLP
+from networks.model import BlendMLP, get_BlendMLP, get_MultibranchBeats
 from pywt import wavedec
 from challenge import *
 from utilities.data_preprocessing import batch_preprocessing
@@ -422,7 +422,7 @@ class UtilityFunctions:
                     if label in classes:
                         j = classes.index(label)
                         local_label[j] = True
-    
+
                 new_windows = recording_full.shape[0]
                 if new_windows == 0:
                     logger.debug("New windows is 0! SKIPPING")
@@ -430,20 +430,17 @@ class UtilityFunctions:
 
                 dset.resize(dset.shape[0] + new_windows, axis=0)
                 dset[-new_windows:] = recording_full
-    
                 label_pack = [local_label for i in range(recording_full.shape[0])]
                 lset.resize(lset.shape[0] + new_windows, axis=0)
                 lset[-new_windows:] = label_pack
-                
                 rrset.resize(rrset.shape[0] + new_windows, axis=0)
                 rrset[-new_windows:] = rr_features
-    
                 waveset.resize(waveset.shape[0] + new_windows, axis=0)
                 if wavelet_features.shape[0] != new_windows:
                     waveset[-new_windows:] = wavelet_features[:-1]
                 else:
                     waveset[-new_windows:] = wavelet_features
-   
+
                 logger.debug(f"Classes in header: {current_labels}")
                 for c in current_labels:
                     if c in selected_classes:
@@ -493,23 +490,23 @@ class UtilityFunctions:
             labels=probabilities_mean > 0.5
             return classes, labels, probabilities_mean, 0
         else:
-            alpha1_input, alpha2_input, beta_input, rr, _= batch_preprocessing(batch, include_domain)
+            #alpha1_input, alpha2_input, beta_input, rr, _= batch_preprocessing(batch, include_domain)
+            alpha_input, beta_input, gamma_input, delta_input, _= batch_preprocessing(batch, include_domain)
 
-            logger.debug(f"Alpha1 input shape after transpose: {alpha1_input.shape}")
-            logger.debug(f"Alpha2 input shape after transpose: {alpha2_input.shape}")
-            logger.debug(f"Beta input after transpose: {beta_input.shape}")
             with torch.no_grad():
                 start = time.time()
-                scores = model(alpha1_input.to(self.device), alpha2_input.to(self.device), beta_input.to(self.device), rr.to(self.device))
+                #scores = model(alpha1_input.to(self.device), alpha2_input.to(self.device), beta_input.to(self.device), rr.to(self.device))
+                scores = model(alpha_input.to(self.device), beta_input.to(self.device), gamma_input.to(self.device), delta_input.to(self.device))
                 end = time.time()
                 peak_time = (end - start) / len(peaks)
-                del alpha1_input, alpha2_input, beta_input
+                #del alpha1_input, alpha2_input, beta_input
+                del alpha_input, beta_input, gamma_input, delta_input
                 probabilities = sigmoid(scores)
                 probabilities_mean = torch.mean(probabilities, 0).detach().cpu().numpy()
                 labels = probabilities_mean > 0.5
-    
+
                 return classes, labels, probabilities_mean, peak_time
-    
+
 
     def load_training_weights_for_fold(self, fold):
         data = []
@@ -545,15 +542,16 @@ class UtilityFunctions:
 
 
     #TODO zdefiniować mądrzejsze ogarnianie device
-    def load_model(self, filename, alpha_config, beta_config, classes, leads, device):
+    def load_model(self, filename, alpha_config, beta_config, gamma_config, delta_config, classes, leads, device):
         checkpoint = torch.load(filename, map_location=torch.device(device))
-        model = get_BlendMLP(alpha_config, beta_config, classes,device, leads=leads)
+        #model = get_BlendMLP(alpha_config, beta_config, classes,device, leads=leads)
+        model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, classes,device, leads=leads)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
         model.to(device)
         logger.info(f'Restored checkpoint from {filename}.') 
         return model
-    
+
 
 
     def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, include_domain,  experiment_name="",  num_classes=26  )-> ResultHandler:

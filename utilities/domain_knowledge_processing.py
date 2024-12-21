@@ -3,7 +3,6 @@ import neurokit2 as nk
 import numpy as np
 import logging
 import math
-
 logger = logging.getLogger(__name__)
 
 

@@ -304,11 +304,11 @@ class LSTM_ECG(nn.Module):
                 self.linea_multiplier = 6
             # self.hidden_size=1
             # self.num_layers=1
-            self.input_size = 1
+            #self.input_size = 1
             self.lstm_alpha1 = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size,
                                        num_layers=self.num_layers, batch_first=True, bidirectional=False)
-            self.fc = nn.Linear(
-                (input_size + input_features_size_b + 1) * self.linea_multiplier * self.hidden_size, num_classes)
+            #self.fc = nn.Linear((input_size + input_features_size_b + 1) * self.linea_multiplier * self.hidden_size, num_classes)
+            self.fc = nn.Linear( input_features_size_b * self.hidden_size, num_classes)
 
         self.relu = nn.ReLU()
 
@@ -378,6 +378,25 @@ class BlendMLP(nn.Module):
             return x1
         return x2
 
+class MultibranchBeats(nn.Module):
+    def __init__(self, modelA, modelB, modelC, modelD, classes):
+        super(MultibranchBeats, self).__init__()
+        self.modelA = modelA
+        self.modelB = modelB
+        self.modelC = modelC
+        self.modelD = modelD
+        self.classes = classes
+        self.linear = nn.Linear( 4* len(classes), len(classes))
+
+    def forward(self, alpha_input, beta_input, gamma_input, delta_input):
+        outA = self.modelA(alpha_input)
+        outB = self.modelB(beta_input)
+        outC = self.modelC(gamma_input)
+        outD = self.modelD(delta_input)
+
+        out_concat = F.relu(torch.cat((outA, outB, outC, outD), dim=1))
+        out = self.linear(out_concat)
+        return out
 
 
 def get_single_network(network, hs, layers, leads, selected_classes, single_peak_length,a1_in, a2_in, b_in, as_branch, device):
@@ -453,4 +472,14 @@ def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes:
     beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
 
     return BlendMLP(alpha_branch, beta_branch, classes)
+
+
+
+def get_MultibranchBeats(alpha_config: BranchConfig, beta_config: BranchConfig, gamma_config: BranchConfig, delta_config: BranchConfig, classes: list, device, leads: list) -> MultibranchBeats:
+    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, None, None, alpha_config.beta_input_size, "beta", device)
+    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
+    gamma_branch = get_single_network(gamma_config.network_name, gamma_config.hidden_size, gamma_config.layers, leads, classes, gamma_config.single_peak_length, None, None, gamma_config.beta_input_size, "beta", device)
+    delta_branch = get_single_network(delta_config.network_name, delta_config.hidden_size, delta_config.layers, leads, classes, delta_config.single_peak_length, None, None, delta_config.beta_input_size, "beta", device)
+
+    return MultibranchBeats(alpha_branch, beta_branch, gamma_branch, delta_branch, classes)
 
