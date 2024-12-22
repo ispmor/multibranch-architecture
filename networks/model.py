@@ -419,7 +419,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
 
     if network == "LSTM":
         if as_branch == "alpha":
-            return LSTM_ECG(input_size=len(leads),
+            return LSTM_ECG(input_size=leads,
                 num_classes=len(selected_classes),
                 hidden_size=hs,
                 num_layers=layers,
@@ -430,7 +430,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                 input_features_size_a1=a1_in,
                 input_features_size_a2=a2_in)
         else:
-            return LSTM_ECG(input_size=len(leads),
+            return LSTM_ECG(input_size=leads,
                 num_classes=len(selected_classes),
                 hidden_size=hs,
                 num_layers=layers,
@@ -443,7 +443,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
 
     if network == "NBEATS":
         if as_branch == "alpha":
-            return Nbeats_alpha(input_size=len(leads),
+            return Nbeats_alpha(input_size=leads,
                         num_classes=len(selected_classes),
                         hidden_size=hs,
                         num_layers=layers,
@@ -454,7 +454,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                         input_features_size_a1=a1_in,
                         input_features_size_a2=a2_in)
         else:
-            return Nbeats_beta(input_size=len(leads),
+            return Nbeats_beta(input_size=leads,
                             num_classes=len(selected_classes),
                             hidden_size=hs,
                             seq_length=single_peak_length,
@@ -492,10 +492,10 @@ def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes:
 
 
 def get_MultibranchBeats(alpha_config: BranchConfig, beta_config: BranchConfig, gamma_config: BranchConfig, delta_config: BranchConfig, classes: list, device, leads: list) -> MultibranchBeats:
-    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, None, None, alpha_config.beta_input_size, "beta", device)
-    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
+    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, len(leads), classes, alpha_config.single_peak_length, None, None, alpha_config.beta_input_size, "beta", device)
+    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, len(leads), classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
     gamma_branch = get_single_network(gamma_config.network_name, gamma_config.hidden_size, gamma_config.layers, gamma_config.channels, classes, gamma_config.single_peak_length, None, None, gamma_config.beta_input_size, "beta", device)
-    delta_branch = get_single_network(delta_config.network_name, delta_config.hidden_size, delta_config.layers, leads, classes, delta_config.single_peak_length, None, None, delta_config.beta_input_size, "beta", device)
+    delta_branch = get_single_network(delta_config.network_name, delta_config.hidden_size, delta_config.layers, len(leads), classes, delta_config.single_peak_length, None, None, delta_config.beta_input_size, "beta", device)
 
     return MultibranchBeats(alpha_branch, beta_branch, gamma_branch, delta_branch, classes)
 
