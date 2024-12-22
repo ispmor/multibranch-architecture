@@ -259,7 +259,7 @@ class Nbeats_beta(nn.Module):
                                      hidden_layer_units=self.hidden_size,
                                      input_features_size=input_features_size_b)
 
-        self.fc = nn.Linear( input_features_size_b * self.linea_multiplier,
+        self.fc = nn.Linear( input_features_size_b * self.input_size,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
         logger.debug(f"{self}")
 
