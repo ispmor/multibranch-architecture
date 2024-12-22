@@ -248,7 +248,6 @@ class Nbeats_beta(nn.Module):
             self.linea_multiplier = 6
         # self.hidden_size = 1
         # self.num_layers = 3
-        #self.input_size = 2
 
         self.nbeats_beta = NBeatsNet(stack_types=[NBeatsNet.GENERIC_BLOCK],
                                      nb_blocks_per_stack=self.num_layers,
@@ -260,7 +259,7 @@ class Nbeats_beta(nn.Module):
                                      hidden_layer_units=self.hidden_size,
                                      input_features_size=input_features_size_b)
 
-        self.fc = nn.Linear( input_features_size_b * self.input_size,
+        self.fc = nn.Linear( input_features_size_b * self.linea_multiplier,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
         logger.debug(f"{self}")
 
