@@ -471,7 +471,7 @@ class BranchConfig:
     hidden_size = -1 
     layers = -1
     
-    def __init__(self,network_name, hidden_size, layers, single_peak_length, a1_input_size=None, a2_input_size=None, beta_input_size=None) -> None:
+    def __init__(self,network_name, hidden_size, layers, single_peak_length, a1_input_size=None, a2_input_size=None, beta_input_size=None, channels=None) -> None:
         self.network_name = network_name
         self.single_peak_length=single_peak_length
         self.hidden_size=hidden_size
@@ -479,6 +479,7 @@ class BranchConfig:
         self.a1_input_size=a1_input_size
         self.a2_input_size=a2_input_size
         self.beta_input_size=beta_input_size
+        self.channels = channels
 
 
 
@@ -493,7 +494,7 @@ def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes:
 def get_MultibranchBeats(alpha_config: BranchConfig, beta_config: BranchConfig, gamma_config: BranchConfig, delta_config: BranchConfig, classes: list, device, leads: list) -> MultibranchBeats:
     alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, leads, classes, alpha_config.single_peak_length, None, None, alpha_config.beta_input_size, "beta", device)
     beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, leads, classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
-    gamma_branch = get_single_network(gamma_config.network_name, gamma_config.hidden_size, gamma_config.layers, leads, classes, gamma_config.single_peak_length, None, None, gamma_config.beta_input_size, "beta", device)
+    gamma_branch = get_single_network(gamma_config.network_name, gamma_config.hidden_size, gamma_config.layers, gamma_config.channels, classes, gamma_config.single_peak_length, None, None, gamma_config.beta_input_size, "beta", device)
     delta_branch = get_single_network(delta_config.network_name, delta_config.hidden_size, delta_config.layers, leads, classes, delta_config.single_peak_length, None, None, delta_config.beta_input_size, "beta", device)
 
     return MultibranchBeats(alpha_branch, beta_branch, gamma_branch, delta_branch, classes)

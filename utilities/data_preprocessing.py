@@ -124,7 +124,7 @@ def multibranch_division(batch):
 
     pca_features = torch.pca_lowrank(pre_pca)
     pca_features = torch.hstack((pca_features[0].reshape(pca_features[0].shape[0], -1), pca_features[1], pca_features[2].reshape(pca_features[2].shape[0], -1)))
-    pca_features = pca_features[:, :, None].repeat(1,1,x.shape[2])
+    pca_features = pca_features[:, :, None]
 
     alpha_input = x
     beta_input = wavelet_features
