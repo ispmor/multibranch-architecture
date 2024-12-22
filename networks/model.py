@@ -246,7 +246,7 @@ class Nbeats_beta(nn.Module):
             self.linea_multiplier = 6
         # self.hidden_size = 1
         # self.num_layers = 3
-        self.input_size = 2
+        #self.input_size = 2
 
         self.nbeats_beta = NBeatsNet(stack_types=[NBeatsNet.GENERIC_BLOCK],
                                      nb_blocks_per_stack=self.num_layers,
