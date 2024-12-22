@@ -239,6 +239,8 @@ class Nbeats_beta(nn.Module):
         self.model_type = model_type
         self.classes = classes
         self.device = device
+        self.input_size = input_size
+        self.input_features_size = input_features_size_b
         self.relu = nn.ReLU()
 
         self.linea_multiplier = input_size
