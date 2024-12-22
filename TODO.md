@@ -19,7 +19,7 @@
 - [+] LSTM,(7;2),  2 LEADS, Domain knowledge at BETA without PCA, BW NOT Removed 
 - [+] LSTM,(7;2),  2 LEADS, Domain knowledge at MLP, BW Removed 
 - [+] LSTM,(7;2),  2 LEADS, Domain knowledge at MLP, BW NOT Removed 
-- [] Każdy feature na osobny branch - 4 branches - LSTM i NBEATS
+- [+] Każdy feature na osobny branch - 4 branches - LSTM i NBEATS
  
 
 ## Miscallenous:

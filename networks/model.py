@@ -37,6 +37,7 @@ class NBeatsNet(nn.Module):
         self.hidden_layer_units = hidden_layer_units
         self.nb_blocks_per_stack = nb_blocks_per_stack
         self.share_weights_in_stack = share_weights_in_stack
+        self.input_features_size=input_features_size
         self.stack_types = stack_types
         self.stacks = []
         self.thetas_dim = thetas_dims
@@ -67,7 +68,7 @@ class NBeatsNet(nn.Module):
             if self.share_weights_in_stack and block_id != 0:
                 block = blocks[-1]  # pick up the last one when we share weights.
             else:
-                block = block_init(self.hidden_layer_units, self.thetas_dim[stack_id], self.input_size,
+                block = block_init(self.hidden_layer_units, self.thetas_dim[stack_id], self.input_features_size * self.input_size,
                                    self.target_size, classes=len(self.classes))
                 self.parameters.extend(block.parameters())
             print(f'     | -- {block}')
@@ -118,10 +119,15 @@ class Block(nn.Module):
             self.theta_f_fc = nn.Linear(units, thetas_dim)
 
     def forward(self, x):
+        logger.debug(f"NBeats Block forward - INPUT  shape: {x.shape}")
         x = F.relu(self.fc1(x))
+        logger.debug(f"NBeats Block forward - FC1 output shape: {x.shape}")
         x = F.relu(self.fc2(x))
+        logger.debug(f"NBeats Block forward - FC2 output  shape: {x.shape}")
         x = F.relu(self.fc3(x))
+        logger.debug(f"NBeats Block forward - FC3 output  shape: {x.shape}")
         x = F.relu(self.fc4(x))
+        logger.debug(f"NBeats Block forward - FC4 output  shape: {x.shape}")
         return x
 
     def __str__(self):
@@ -140,6 +146,7 @@ class GenericBlock(Block):
         self.forecast_fc = nn.Linear(thetas_dim, backcast_length)  # forecast_length)
 
     def forward(self, x):
+        logger.debug(f"NBeats Generic Block forward. Input shape: {x.shape}")
         x = super(GenericBlock, self).forward(x)
 
         theta_b = F.relu(self.theta_b_fc(x))
@@ -239,7 +246,7 @@ class Nbeats_beta(nn.Module):
             self.linea_multiplier = 6
         # self.hidden_size = 1
         # self.num_layers = 3
-        self.input_size = 1
+        self.input_size = 2
 
         self.nbeats_beta = NBeatsNet(stack_types=[NBeatsNet.GENERIC_BLOCK],
                                      nb_blocks_per_stack=self.num_layers,
@@ -251,12 +258,17 @@ class Nbeats_beta(nn.Module):
                                      hidden_layer_units=self.hidden_size,
                                      input_features_size=input_features_size_b)
 
-        self.fc = nn.Linear(input_size * self.linea_multiplier + input_features_size_b * self.linea_multiplier + self.linea_multiplier,
+        self.fc = nn.Linear( input_features_size_b * self.input_size,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
+        logger.debug(f"{self}")
+
 
     def forward(self, beta_input):
-        _, output_beta = self.nbeats_beta(beta_input)  # lstm with input, hidden, and internal state
-        logger.debug(f"BETA Output shape: {output_beta.shape}\nBETA INPUT shape: {beta_input.shape}")
+        logger.debug(f"NBeats_beta INPUT shape: {beta_input.shape}")
+        beta_flattened = torch.flatten(beta_input, start_dim=1)
+        logger.debug(f"NBeats_beta INPUT FLATTENED shape: {beta_flattened.shape}")
+        _, output_beta = self.nbeats_beta(beta_flattened)  # lstm with input, hidden, and internal state
+        logger.debug(f"Nbeats_beta OUTPUT shape: {output_beta.shape}")
         tmp = torch.squeeze(output_beta)
         out = self.relu(tmp)  # relu
         out = self.fc(out)  # Final Output
@@ -389,6 +401,8 @@ class MultibranchBeats(nn.Module):
         self.linear = nn.Linear( 4* len(classes), len(classes))
 
     def forward(self, alpha_input, beta_input, gamma_input, delta_input):
+        logger.debug(f"Alpha input shape: {alpha_input.shape}\nBeta input shape: {beta_input.shape}\nGamma input shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
+
         outA = self.modelA(alpha_input)
         outB = self.modelB(beta_input)
         outC = self.modelC(gamma_input)
