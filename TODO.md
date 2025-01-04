@@ -1,7 +1,12 @@
 # TODO LIST
 
 ## Implementation:
-
+- [] Imlement Sokolov-Lyon index,
+- [] Implement MacPhie index,
+- [] Implement Cornell's index,
+- [] Implement Levis index
+- [] Keep max 3 labels per recording
+- [] Make weights based on number of beats, not recordings.
 
 
 ## Experiments:
