@@ -211,6 +211,9 @@ def get_labels(header):
                     labels.append(entry.strip())
             except:
                 pass
+    if len(labels) > 3:
+        logger.debug(f"Trimming labels. Total: {labels}")
+        return labels[:3]
     return labels
 
 

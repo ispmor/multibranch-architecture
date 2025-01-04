@@ -179,6 +179,92 @@ def get_R_duration(signals, info, freq=500):
 
     return result
 
+def sokolov_lyons_index(V1_info, V1_signal, V5_info, V5_signal):
+    if "ECG_S_Peaks" in V1_info and "ECG_R_Peaks" in V5_info:
+        V1_QRS = get_QRS_from_lead(V1_signal, V1_info)
+        V5_QRS = get_QRS_from_lead(V5_signal, V5_info)
+        default_length = len(V1_QRS)
+        if len(V5_QRS) < default_length:
+            default_length=len(V5_QRS)
+        return [V1_QRS[i][2] + V5_QRS[i][1] for i in range(default_length)]
+    else:
+        default_length = len(V5_info['ECG_R_Peaks'])
+        if len(V1_info['ECG_R_Peaks']) < default_length:
+            default_length=len(V1_info['ECG_R_Peaks'])
+        return np.zeros(default_length))
+
+
+
+def cornells_index(V3_info, V3_signal, aVL_info, aVL_signal):
+    if "ECG_S_Peaks" in V3_info and "ECG_R_Peaks" in aVL_info:
+        V3_QRS = get_QRS_from_lead(V3_signal, V3_info)
+        aVL_QRS = get_QRS_from_lead(aVL_signal, aVL_info)
+        default_length = len(V3_QRS)
+        if len(aVL_QRS) < default_length:
+            default_length=len(aVL_QRS)
+        return [V3_QRS[i][2] + aVL_QRS[i][1] for i in range(default_length)]
+    else:
+        default_length = len(aVL_info['ECG_R_Peaks'])
+        if len(V3_info['ECG_R_Peaks']) < default_length:
+            default_length=len(V3_info['ECG_R_Peaks'])
+        return np.zeros(default_length))
+
+def cornells_product(V3_info, V3_signal, aVL_info, aVL_signal):
+    voltages=cornells_index(V3_info, V3_signal, aVL_info, aVL_signal)
+    durations=get_QRS_duration(aVL_signal, aVL_info)
+    if len(voltages)==len(durations):
+        product = np.product(voltages,durations)
+    else:
+        default_length = len(voltages)
+        if len(durations) < default_length:
+            default_length=len(aVL_QRS)
+        product = sum([voltages[i] * durations[i] for i in range(default_length)])
+
+
+
+def levis_index(III_info, III_signal, I_info, I_signal):
+    if "ECG_S_Peaks" in III_info and "ECG_R_Peaks" in I_info:
+        III_QRS = get_QRS_from_lead(III_signal, III_info)
+        I_QRS = get_QRS_from_lead(I_signal, I_info)
+        default_length = len(III_QRS)
+        if len(I_QRS) < default_length:
+            default_length=len(I_QRS)
+        return [(III_QRS[i][2] - I_QRS[i][2]) + (I_QRS[i][1]-III_QRS[i][1]) for i in range(default_length)]
+    else:
+        default_length = len(I_info['ECG_R_Peaks'])
+        if len(III_info['ECG_R_Peaks']) < default_length:
+            default_length=len(III_info['ECG_R_Peaks'])
+        return np.zeros(default_length))
+
+def get_max_param_from_lead(signal, info, param):
+    qrs = get_QRS_from_lead(signal, info)
+    if param == "q":
+        return max(abs(qrs[:][0]))
+    if param == "r":
+        return max(abs(qrs[:][1]))
+    if param == "s":
+        return max(abs(qrs[:][2]))
+
+
+
+def macphie_index(signals, infos):
+    max_r = -1000000000
+    max_s = -1000000000
+    for signal, info in zip(signals, infos):
+        tmp_r = get_max_param_from_lead(signal, info, "r")
+        tmp_s = get_max_param_from_lead(signal, info, "s")
+        if tmp_r > max_r:
+            max_r = tmp_r
+        if tmp_s > max_s:
+            max_s = tmp_s
+
+    result = max_r + max_s
+
+    if result < 0:
+        result=0
+
+    return result
+
 
 def get_0_crossings(biorcD, beg_qrs, end_qrs, threshold=15, show=False, **kwargs):
     bior_qrs_beg = beg_qrs // 2

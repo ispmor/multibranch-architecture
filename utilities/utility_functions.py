@@ -289,7 +289,7 @@ class UtilityFunctions:
 
 
 
-    def preprocess_recording(self, recording, header, remove_baseline, leads_idxs, bw_wavelet="sym10", bw_level=8, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
+    def preprocess_recording(self, recording, header, remove_baseline, leads_idxs, bw_wavelet="sym10", bw_level=9, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
         if remove_baseline:
             recording, _ = baseline_wandering_removal(recording, bw_wavelet,bw_level)
         signals = {}
