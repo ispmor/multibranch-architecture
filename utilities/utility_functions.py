@@ -303,6 +303,7 @@ class UtilityFunctions:
         infos = {}
         rpeaks_avg = []
         rates = {}
+        was_logged=False
         for lead_name, idx in leads_idxs.items(): 
             coeffs = wavedec(data=recording[idx], wavelet=denoise_wavelet, level=deniose_level)
             recording[idx] = wavelet_threshold(recording[idx], coeffs, denoise_wavelet)
@@ -311,8 +312,10 @@ class UtilityFunctions:
                 rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method=peaks_method)
                 signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
             except Exception as e:
-                logger.warn(e, exc_info=True)
-                logger.warn(f"Comming from: \n{header}")
+                if not was_logged:
+                    logger.warn(e, exc_info=True)
+                    logger.warn(f"Comming from: \n{header}")
+                    was_logged=True
 
             signals[lead_name] = signal
             infos[lead_name] = info
