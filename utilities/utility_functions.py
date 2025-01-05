@@ -72,7 +72,7 @@ class UtilityFunctions:
 
 
 
-    def __init__(self, device, datasets_dir="h5_datasets/", window_size=350, rr_features_size=10, wavelet_features_size=185) -> None:
+    def __init__(self, device, datasets_dir="h5_datasets/", window_size=350, rr_features_size=16, wavelet_features_size=185) -> None:
         self.device = device
         self.window_size = window_size
         self.rr_features_size = rr_features_size
@@ -255,11 +255,11 @@ class UtilityFunctions:
             domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks_considered)
             rr_features = analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)], len(peaks_considered))
             logger.debug(f"RR_features shape after dict to array: {rr_features.shape}")
-            rr_features = np.repeat(rr_features[np.newaxis, :, :], x.shape[0], axis=0)
 
             return rr_features, x, coeffs
         except Exception as e:
             logger.warn(f"Currently processed file: {header_file}, issue:{e}", exc_info=True)
+            raise
 
 
         return rr_features, x, coeffs

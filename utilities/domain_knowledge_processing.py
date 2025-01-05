@@ -87,9 +87,15 @@ def get_QRS_from_lead(signal, info, with_nans=False):
     num_peaks = len(info['ECG_R_Peaks'])
     result = []
     for i in range(num_peaks):
-        Q = info['ECG_Q_Peaks'][i]
-        R = info['ECG_R_Peaks'][i]
-        S = info['ECG_S_Peaks'][i]
+        Q = np.nan
+        if i < len(info['ECG_Q_Peaks']):
+            Q = info['ECG_Q_Peaks'][i]
+        R = np.nan
+        if i < len(info['ECG_R_Peaks']):
+            R = info['ECG_R_Peaks'][i]
+        S = np.nan
+        if i < len(info['ECG_S_Peaks']):
+            S = info['ECG_S_Peaks'][i]
         QRS_ts= [Q, R, S]
         if with_nans:
             q_v=0
@@ -143,12 +149,21 @@ def has_missing_p(signals, info):
 
 
 def get_QRS_duration(signals, info, freq=500, with_nans=False):
-    num_peaks = min([len(info['ECG_R_Peaks']), len(info['ECG_Q_Peaks']), len(info['ECG_S_Peaks'])])
+    if with_nans:
+        num_peaks=len(info['ECG_R_Peaks'])
+    else:
+        num_peaks = min([len(info['ECG_R_Peaks']), len(info['ECG_Q_Peaks']), len(info['ECG_S_Peaks'])])
     result = []
     for i in range(num_peaks):
-        Q = info['ECG_Q_Peaks'][i]
-        R = info['ECG_R_Peaks'][i]
-        S = info['ECG_S_Peaks'][i]
+        Q = np.nan
+        if i < len(info['ECG_Q_Peaks']):
+            Q = info['ECG_Q_Peaks'][i]
+        R = np.nan
+        if i < len(info['ECG_R_Peaks']):
+            R = info['ECG_R_Peaks'][i]
+        S = np.nan
+        if i < len(info['ECG_S_Peaks']):
+            S = info['ECG_S_Peaks'][i]
         if any(np.isnan([Q,R,S])) and not with_nans:
             continue
         if any(np.isnan([Q,R,S])) and with_nans:
@@ -439,7 +454,9 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks
         if check_for_lead('aVF',leads_idxs,analysed_results):
             if 'II' not in leads_idxs:
                 rhythm_origin = get_rhythm_origin(analysed_results['I']['signal'], analysed_results['I']['info'], analysed_results['aVF']['signal'], analysed_results['aVF']['info'])
-            heart_axis = get_heart_axis(get_QRS_from_lead(analysed_results['I']['signal'], analysed_results['I']['info']), get_QRS_from_lead(analysed_results['aVF']['signal'], analysed_results['aVF']['info']))
+            heart_axis = get_heart_axis(get_QRS_from_lead(analysed_results['I']['signal'], analysed_results['I']['info'], with_nans=True), get_QRS_from_lead(analysed_results['aVF']['signal'], analysed_results['aVF']['info'], with_nans=True))
+
+
 
     #Lewis Index
     if check_for_lead('I', leads_idxs, analysed_results) and check_for_lead('III', leads_idxs, analysed_results):
@@ -497,28 +514,46 @@ def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
     result = []
     logger.debug(analysis_dict)
     per_lead_parameters = ['bpm', 'missing_qrs', 'missing_p', 'qrs_duration', 's_duration', 'notched', 'r_distances']
-    cross_lead_parameters = ['heart_axis','rhythm_origin_vertical','rhythm_origin_horizontal', 'romhilt', 'cornell', 'cornell-product', 'sokolov-lyon', 'mcphie', 'lewis']
-    for lead_name, idx in leads_idxs.items():
+    if len(leads_idxs.keys()) == 12:
+        cross_lead_parameters = ['heart_axis','rhythm_origin_vertical','rhythm_origin_horizontal', 'romhilt', 'cornell', 'cornell-product', 'sokolov-lyon', 'mcphie', 'lewis']
+    elif len(leads_idxs.keys()) == 6:
+        cross_lead_parameters = ['heart_axis','rhythm_origin_vertical','rhythm_origin_horizontal', 'lewis']
+    elif len(leads_idxs.keys()) == 4:
+        cross_lead_parameters = ['heart_axis','rhythm_origin_vertical','rhythm_origin_horizontal']
+    else:
+        cross_lead_parameters = ['rhythm_origin_vertical','rhythm_origin_horizontal']
+
+
+    for peak_idx in range(peaks_count):
         tmp_result_lead = []
-        for peak_idx in range(peaks_count):
+        for lead_name, idx in leads_idxs.items():
             tmp_result = []
             for key in per_lead_parameters:
                 if key in analysis_dict[lead_name]:
-                    if type(analysis_dict[lead_name][key]) == list:
-                        tmp_result.append(analysis_dict[lead_name][key][peak_idx])
-                    else:
-                        tmp_result.append(analysis_dict[lead_name][key])
+                    try:
+                        if type(analysis_dict[lead_name][key]) == list:
+                            tmp_result.append(analysis_dict[lead_name][key][peak_idx])
+                        else:
+                            tmp_result.append(analysis_dict[lead_name][key])
+                    except Exception as e:
+                        logger.debug(f"Key {key}, peak_idx {peak_idx}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
+                        raise e
                 else:
                     raise Exception(f"No key {key} in results dict")
             for key in cross_lead_parameters:
                 if key in analysis_dict:
-                    if type(analysis_dict[key]) == list:
-                        tmp_result.append(analysis_dict[key][peak_idx])
-                    else:
-                        tmp_result.append(analysis_dict[key])
+                    try:
+                        if type(analysis_dict[key]) == list:
+                            tmp_result.append(analysis_dict[key][peak_idx])
+                        else:
+                            tmp_result.append(analysis_dict[key])
+                    except Exception as e:
+                        logger.debug(f"Key {key}, peak_idx {peak_idx}, array from result: {analysis_dict[key]}")
+                        raise e
                 else:
                     raise Exception(f"No key {key} in results dict")
 
             tmp_result_lead.append(tmp_result)
         result.append(tmp_result_lead)
     return np.array(result, dtype=np.float64)
+
