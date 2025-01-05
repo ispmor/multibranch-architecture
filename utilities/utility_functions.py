@@ -312,8 +312,7 @@ class UtilityFunctions:
                 signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
             except Exception as e:
                 logger.warn(e, exc_info=True)
-                logger.debug(f"Comming from: \n{header}")
-                #return (None, None, None, None)
+                logger.warn(f"Comming from: \n{header}")
 
             signals[lead_name] = signal
             infos[lead_name] = info
