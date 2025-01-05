@@ -20,7 +20,7 @@ from .domain_knowledge_processing import analyse_recording, analysis_dict_to_arr
 from .raw_signal_preprocessing import baseline_wandering_removal, wavelet_threshold
 import time
 import shutil
-
+import traceback
 
 
 logger = logging.getLogger(__name__)
@@ -228,18 +228,21 @@ class UtilityFunctions:
 
         x = []
         coeffs = []
+        peaks_considered = []
         horizon = self.window_size // 2
         for i, peak in enumerate(peaks):
             if peak < horizon:
                 signal_local = recording[:, 0: single_peak_length]
                 wavelet_features = self.get_wavelet_features(signal_local,'db2')
+                peaks_considered.append(peak)
             elif peak + horizon < len(recording[0]):
                 signal_local = recording[:, peak-horizon: peak + horizon]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
+                peaks_considered.append(peak)
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
-            logger.debug("Adding to X_features: {signal_local}")
+            logger.debug(f"Adding to X_features: {signal_local}")
             x.append(signal_local)
             coeffs.append(wavelet_features)
 
@@ -249,11 +252,15 @@ class UtilityFunctions:
         rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
 
         try:
-            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks  )
-            rr_features = np.repeat(analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)])[np.newaxis, :, :], x.shape[0], axis=0)
+            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks_considered)
+            rr_features = analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)], len(peaks_considered))
+            logger.debug(f"RR_features shape after dict to array: {rr_features.shape}")
+            rr_features = np.repeat(rr_features[np.newaxis, :, :], x.shape[0], axis=0)
+
             return rr_features, x, coeffs
         except Exception as e:
-            logger.warn(f"Currently processed file: {header_file}, issue:{e}")
+            logger.warn(f"Currently processed file: {header_file}, issue:{e}", exc_info=True)
+
 
         return rr_features, x, coeffs
 
@@ -304,7 +311,7 @@ class UtilityFunctions:
                 rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method=peaks_method)
                 signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
             except Exception as e:
-                logger.warn(e)
+                logger.warn(e, exc_info=True)
                 logger.debug(f"Comming from: \n{header}")
                 #return (None, None, None, None)
 
@@ -336,7 +343,7 @@ class UtilityFunctions:
             if freq != float(sampling_rate):
                 recording_full = self.equalize_signal_frequency(freq, recording_full) 
         except Exception as e:
-            logger.warn(f"Moving {header_file} and associated recording to {thrash_data_dir} because of {e}")
+            logger.warn(f"Moving {header_file} and associated recording to {thrash_data_dir} because of {e}", exc_info=True)
             shutil.move(header_file, thrash_data_dir)
             shutil.move(recording_file, thrash_data_dir)
             recording_full = None

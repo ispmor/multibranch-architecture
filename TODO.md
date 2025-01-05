@@ -9,7 +9,7 @@
 - [] Make weights based on number of beats, not recordings.
 - [] Make domain knowledge being compute for each beat, or at least to correlate to each beat instead of being always the average
 - [] Add sex and age as part of domain knowledge
-- [] Implement Romhilt index
+- [...] Implement Romhilt index
 
 Indexes are implemented but not yet included in the domain knowledge
 
