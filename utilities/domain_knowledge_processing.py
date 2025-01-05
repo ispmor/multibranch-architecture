@@ -536,7 +536,7 @@ def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
                         else:
                             tmp_result.append(analysis_dict[lead_name][key])
                     except Exception as e:
-                        logger.debug(f"Key {key}, peak_idx {peak_idx}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
+                        logger.error(f"Key {key}, peak_idx {peak_idx}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
                         raise e
                 else:
                     raise Exception(f"No key {key} in results dict")
@@ -548,10 +548,11 @@ def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
                         else:
                             tmp_result.append(analysis_dict[key])
                     except Exception as e:
-                        logger.debug(f"Key {key}, peak_idx {peak_idx}, array from result: {analysis_dict[key]}")
+                        logger.error(f"Key {key}, peak_idx {peak_idx}, array from result: {analysis_dict[key]}")
                         raise e
                 else:
-                    raise Exception(f"No key {key} in results dict")
+                    logger.warn(f"No key {key} in results dict")
+                    tmp_result.append(0)
 
             tmp_result_lead.append(tmp_result)
         result.append(tmp_result_lead)
