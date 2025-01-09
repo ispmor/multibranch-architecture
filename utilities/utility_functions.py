@@ -17,10 +17,10 @@ import torch
 import csv
 import time
 from .domain_knowledge_processing import analyse_recording, analysis_dict_to_array
-from .raw_signal_preprocessing import baseline_wandering_removal, wavelet_threshold
+from .raw_signal_preprocessing import baseline_wandering_removal, wavelet_threshold, remove_baseline_drift
 import time
 import shutil
-import traceback
+from pybaselines import Baseline
 
 
 logger = logging.getLogger(__name__)
@@ -222,47 +222,59 @@ class UtilityFunctions:
 
 
 
-    def one_file_training_data(self, recording, signals, infos, rates, single_peak_length, peaks, header_file, leads, remove_baseline=False):
+    def one_file_training_data(self, recording, drift_removed_recording, bw_removed_recording, signals, infos, rates, single_peak_length, peaks, header_file, leads):
         logger.debug("Entering one_file_training_data")
-        logger.debug(f"Recording shape: {recording.shape}")
+        logger.debug(f"Recording shape: {drift_removed_recording.shape}")
 
-        x = []
+
+        x_raw = []
+        x_drift_removed = []
+        x_baseline_removed = []
         coeffs = []
         peaks_considered = []
         horizon = self.window_size // 2
         for i, peak in enumerate(peaks):
             if peak < horizon:
-                signal_local = recording[:, 0: single_peak_length]
+                signal_local = drift_removed_recording[:, 0: single_peak_length]
+                signal_local_raw = recording[:, 0: single_peak_length]
+                signal_local_bw = bw_removed_recording[:, 0: single_peak_length]
                 wavelet_features = self.get_wavelet_features(signal_local,'db2')
                 peaks_considered.append(peak)
-            elif peak + horizon < len(recording[0]):
-                signal_local = recording[:, peak-horizon: peak + horizon]
+            elif peak + horizon < len(drift_removed_recording[0]):
+                signal_local = drift_removed_recording[:, peak-horizon: peak + horizon]
+                signal_local_raw = recording[:, peak-horizon: peak + horizon]
+                signal_local_bw = bw_removed_recording[:, peak-horizon: peak + horizon]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
                 peaks_considered.append(peak)
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
+
             logger.debug(f"Adding to X_features: {signal_local}")
-            x.append(signal_local)
+            x_drift_removed.append(signal_local)
+            x_raw.append(signal_local_raw)
+            x_baseline_removed.append(signal_local_bw)
             coeffs.append(wavelet_features)
 
-        x = np.array(x, dtype=np.float64)
+        x_raw = np.array(x_raw, dtype=np.float64)
+        x_drift_removed = np.array(x_drift_removed, dtype=np.float64)
+        x_baseline_removed = np.array(x_baseline_removed, dtype=np.float64)
         coeffs = np.nan_to_num(np.asarray(coeffs,  dtype=np.float64))
 
-        rr_features = np.zeros((x.shape[0], recording.shape[0], self.rr_features_size), dtype=np.float64)
+        rr_features = np.zeros((x_drift_removed.shape[0], drift_removed_recording.shape[0], self.rr_features_size), dtype=np.float64)
 
         try:
-            domain_knowledge_analysis = analyse_recording(recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks_considered)
+            domain_knowledge_analysis = analyse_recording(drift_removed_recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks_considered)
             rr_features = analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)], len(peaks_considered))
             logger.debug(f"RR_features shape after dict to array: {rr_features.shape}")
 
-            return rr_features, x, coeffs
+            return x_raw, x_drift_removed, x_baseline_removed, rr_features, coeffs
         except Exception as e:
             logger.warn(f"Currently processed file: {header_file}, issue:{e}", exc_info=True)
             raise
 
 
-        return rr_features, x, coeffs
+        return x_raw, x_drift_removed, x_baseline_removed, rr_features, coeffs
 
 
 
@@ -296,21 +308,21 @@ class UtilityFunctions:
 
 
 
-    def preprocess_recording(self, recording, header, remove_baseline, leads_idxs, bw_wavelet="sym10", bw_level=9, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
-        if remove_baseline:
-            recording, _ = baseline_wandering_removal(recording, bw_wavelet,bw_level)
+    def preprocess_recording(self, recording, header, leads_idxs, bw_wavelet="sym10", bw_level=8, denoise_wavelet="db6", deniose_level=3, peaks_method="pantompkins1985", sampling_rate=500):
+        drift_removed_recording, _ = remove_baseline_drift(recording)
+        bw_removed_recording, _ = baseline_wandering_removal(recording, bw_wavelet,bw_level)
         signals = {}
         infos = {}
         rpeaks_avg = []
         rates = {}
         was_logged=False
         for lead_name, idx in leads_idxs.items(): 
-            coeffs = wavedec(data=recording[idx], wavelet=denoise_wavelet, level=deniose_level)
-            recording[idx] = wavelet_threshold(recording[idx], coeffs, denoise_wavelet)
+            coeffs = wavedec(data=drift_removed_recording[idx], wavelet=denoise_wavelet, level=deniose_level)
+            drift_removed_recording[idx] = wavelet_threshold(drift_removed_recording[idx], coeffs, denoise_wavelet)
             rpeaks, signal, info = None, None, None
             try:
-                rpeaks = nk.ecg_findpeaks(recording[idx], sampling_rate, method=peaks_method)
-                signal, info =nk.ecg_delineate(recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
+                rpeaks = nk.ecg_findpeaks(drift_removed_recording[idx], sampling_rate, method=peaks_method)
+                signal, info =nk.ecg_delineate(drift_removed_recording[idx], rpeaks=rpeaks, sampling_rate=sampling_rate, method='dwt')
             except Exception as e:
                 if not was_logged:
                     logger.warn(e, exc_info=True)
@@ -325,15 +337,17 @@ class UtilityFunctions:
                 rates[lead_name] = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
 
         recording = np.nan_to_num(recording)
+        drift_removed_recording = np.nan_to_num(drift_removed_recording)
+        bw_removed_recording = np.nan_to_num(bw_removed_recording)
         if len(rpeaks_avg) > 0:
             min_length = min([len(x) for x in rpeaks_avg])
             rpeaks_avg = np.array([rpeaks_avg[i][ :min_length] for i in range(len(rpeaks_avg))])
             peaks = np.mean(rpeaks_avg[:, ~np.any(np.isnan(rpeaks_avg), axis=0)], axis=0).astype(int)
             logger.debug(f"Peaks: {peaks}")
 
-            return (recording, signals, infos, peaks, rates)
+            return (drift_removed_recording, bw_removed_recording, recording, signals, infos, peaks, rates)
         else:
-            return (recording, signals, infos, None, None)
+            return (drift_removed_recording, bw_removed_recording, recording, signals, infos, None, None)
 
 
     def load_and_equalize_recording(self, recording_file, header, header_file, sampling_rate, leads):
@@ -384,6 +398,12 @@ class UtilityFunctions:
                                          dtype='f',
                                          chunks=(1, len(leads), 185))
 
+            nodriftset = grp.create_dataset("drift_removed", (1, len(leads), self.window_size), maxshape=(None, len(leads), self.window_size),
+                                         dtype='f',
+                                         chunks=(1, len(leads), self.window_size))
+            nobwset = grp.create_dataset("bw_removed", (1, len(leads), self.window_size), maxshape=(None, len(leads), self.window_size),
+                                         dtype='f',
+                                         chunks=(1, len(leads), self.window_size))
             counter = 0
             avg_processing_times = []
             for i in num_recordings:
@@ -415,31 +435,31 @@ class UtilityFunctions:
 
                 start_processing = time.time()
 
-                recording, signals, infos, peaks, rates = self.preprocess_recording(recording_full, header, remove_baseline, leads_idxs=leads_idxs_dict[len(leads)])
+                drift_removed_recording, bw_removed_recording, recording, signals, infos, peaks, rates = self.preprocess_recording(recording_full, header,  leads_idxs=leads_idxs_dict[len(leads)])
 
                 if signals is None or infos is None or peaks is None or rates is None:
                     continue
 
-                rr_features, recording_full, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size,peaks, header_files[i], leads=leads, remove_baseline=remove_baseline)
+                recording_raw, recording_drift_removed, recording_bw_removed, rr_features, wavelet_features = self.one_file_training_data(recording, drift_removed_recording, bw_removed_recording, signals, infos, rates, self.window_size,peaks, header_files[i], leads=leads)
                 end_processing = time.time()
                 avg_processing_times.append(end_processing - start_processing)
 
 
-                logger.debug(f"RR Features: {rr_features.shape}\n recording_full shape: {recording_full.shape}\nwavelet_features: {wavelet_features.shape}")
+                logger.debug(f"RR Features: {rr_features.shape}\n recording_raw shape: {recording_raw.shape}\nwavelet_features: {wavelet_features.shape}")
                 local_label = np.zeros((num_classes,), dtype=bool)
                 for label in current_labels:
                     if label in classes:
                         j = classes.index(label)
                         local_label[j] = True
 
-                new_windows = recording_full.shape[0]
+                new_windows = recording_raw.shape[0]
                 if new_windows == 0:
                     logger.debug("New windows is 0! SKIPPING")
                     continue
 
                 dset.resize(dset.shape[0] + new_windows, axis=0)
-                dset[-new_windows:] = recording_full
-                label_pack = [local_label for i in range(recording_full.shape[0])]
+                dset[-new_windows:] = recording_raw
+                label_pack = [local_label for i in range(recording_raw.shape[0])]
                 lset.resize(lset.shape[0] + new_windows, axis=0)
                 lset[-new_windows:] = label_pack
                 rrset.resize(rrset.shape[0] + new_windows, axis=0)
@@ -449,6 +469,10 @@ class UtilityFunctions:
                     waveset[-new_windows:] = wavelet_features[:-1]
                 else:
                     waveset[-new_windows:] = wavelet_features
+                nodriftset.resize(nodriftset.shape[0] + new_windows, axis=0)
+                nodriftset[-new_windows:] = recording_drift_removed
+                nobwset.resize(nobwset.shape[0] + new_windows, axis=0)
+                nobwset[-new_windows:] = recording_bw_removed
 
                 logger.debug(f"Classes in header: {current_labels}")
                 for c in current_labels:
@@ -464,7 +488,7 @@ class UtilityFunctions:
         return classes_numbers
 
 
-    def run_model(self, model: BlendMLP, header, recording, remove_baseline, include_domain):
+    def run_model(self, model: BlendMLP, header, recording, include_domain):
         classes = model.classes
         leads = model.leads
 
@@ -473,14 +497,14 @@ class UtilityFunctions:
         if freq != float(500):
             x_features = self.equalize_signal_frequency(freq, x_features)
 
-        recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header, remove_baseline, leads_idxs=leads_idxs_dict[len(leads)])
+        drift_removed_recording, bw_removed_recording, recording, signals, infos, peaks, rates = self.preprocess_recording(x_features, header, leads_idxs=leads_idxs_dict[len(leads)])
         if signals is None or infos is None or peaks is None or rates is None:
             labels = np.zeros(len(classes))
             probabilities_mean = np.zeros(len(classes))
             labels=probabilities_mean > 0.5
             return classes, labels, probabilities_mean, 0
 
-        rr_features, x_features, wavelet_features = self.one_file_training_data(recording, signals, infos, rates, self.window_size, peaks, header, leads)
+        recording_raw, recording_drift_removed, recording_bw_removed, rr_features, wavelet_features= self.one_file_training_data(recording, drift_removed_recording, bw_removed_recording, signals, infos, rates, self.window_size, peaks, header, leads)
         logger.debug(f"RR_features shape obtained from one_file_training_data: {rr_features.shape}")
         logger.debug(f"First dimension of RR_features: {rr_features[0]}")
         x_features = torch.Tensor(x_features)
@@ -491,7 +515,8 @@ class UtilityFunctions:
         logger.debug(f"Wavelets_features from one_file_training_data: {wavelet_features.shape}")
         logger.debug(f"First dimension of wavelets_features: {wavelet_features[0]}")
 
-        batch = (x_features, None, rr_features, wavelet_features)
+        #batch = (x_features, None, rr_features, wavelet_features)
+        batch = (recording_raw, recording_drift_removed, recording_bw_removed, None, rr_features, wavelet_features)
         # Predict labels and probabilities.
         if len(x_features) == 0:
             labels = np.zeros(len(classes))
@@ -500,16 +525,16 @@ class UtilityFunctions:
             return classes, labels, probabilities_mean, 0
         else:
             #alpha1_input, alpha2_input, beta_input, rr, _= batch_preprocessing(batch, include_domain)
-            alpha_input, beta_input, gamma_input, delta_input, _= batch_preprocessing(batch, include_domain)
+            alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input, _= batch_preprocessing(batch, include_domain)
 
             with torch.no_grad():
                 start = time.time()
                 #scores = model(alpha1_input.to(self.device), alpha2_input.to(self.device), beta_input.to(self.device), rr.to(self.device))
-                scores = model(alpha_input.to(self.device), beta_input.to(self.device), gamma_input.to(self.device), delta_input.to(self.device))
+                scores = model(alpha_input.to(self.device), beta_input.to(self.device), gamma_input.to(self.device), delta_input.to(self.device), epsilon_input.to(self.device), zeta_input.to(self.device))
                 end = time.time()
                 peak_time = (end - start) / len(peaks)
                 #del alpha1_input, alpha2_input, beta_input
-                del alpha_input, beta_input, gamma_input, delta_input
+                del alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input
                 probabilities = sigmoid(scores)
                 probabilities_mean = torch.mean(probabilities, 0).detach().cpu().numpy()
                 labels = probabilities_mean > 0.5
@@ -551,10 +576,10 @@ class UtilityFunctions:
 
 
     #TODO zdefiniować mądrzejsze ogarnianie device
-    def load_model(self, filename, alpha_config, beta_config, gamma_config, delta_config, classes, leads, device):
+    def load_model(self, filename, alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, classes, leads, device):
         checkpoint = torch.load(filename, map_location=torch.device(device))
         #model = get_BlendMLP(alpha_config, beta_config, classes,device, leads=leads)
-        model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, classes,device, leads=leads)
+        model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, classes,device, leads=leads)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
         model.to(device)
@@ -563,7 +588,7 @@ class UtilityFunctions:
 
 
 
-    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, remove_baseline, include_domain,  experiment_name="",  num_classes=26  )-> ResultHandler:
+    def test_network(self, model, weights_file, header_files, recording_files, fold, leads, include_domain,  experiment_name="",  num_classes=26  )-> ResultHandler:
         classes_eval, weights_eval = load_weights(weights_file)
         scalar_outputs = np.ndarray((len(header_files), num_classes))
         binary_outputs = [[] for _ in range(len(header_files))]
@@ -576,7 +601,7 @@ class UtilityFunctions:
         for i,header_filename in enumerate(header_files):
             header = load_header(header_filename)
             recording = load_recording(recording_files[i])
-            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, remove_baseline=remove_baseline, include_domain=include_domain)
+            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, include_domain=include_domain)
             logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")
         logger.info(f"#####   Fold={fold}, Leads: {len(leads)}")

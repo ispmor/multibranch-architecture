@@ -34,7 +34,7 @@ class TrainingConfig:
 class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
-    training_config = None
+    training_config: TrainingConfig = None
     def __init__(self, selected_classes: list, training_config: TrainingConfig) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
@@ -49,10 +49,8 @@ class NetworkTrainer:
         for batch in training_data_loader:
             local_step += 1
             model.train()
-            #alpha1_input, alpha2_input, beta_input, rr, y = batch_preprocessing(batch, include_domain)
-            #forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device), rr.to(self.training_config.device))
-            alpha_input, beta_input, gamma_input, delta_input, y = batch_preprocessing(batch, include_domain)
-            forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device))
+            alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input, y = batch_preprocessing(batch, include_domain)
+            forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
             epoch_loss.append(loss)
@@ -77,10 +75,8 @@ class NetworkTrainer:
         with torch.no_grad():
             model.eval()
             for batch in validation_data_loader:
-                #alpha1_input, alpha2_input, beta_input, rr, y = batch_preprocessing(batch, include_domain)
-                #forecast = model(alpha1_input.to(self.training_config.device), alpha2_input.to(self.training_config.device), beta_input.to(self.training_config.device), rr.to(self.training_config.device))
-                alpha_input, beta_input, gamma_input, delta_input, y = batch_preprocessing(batch, include_domain)
-                forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device))
+                alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input, y = batch_preprocessing(batch, include_domain)
+                forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
                 epoch_loss.append(loss)

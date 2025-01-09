@@ -28,6 +28,8 @@ parser.add_argument("--alpha-input-size", help="alpha branch input vector size",
 parser.add_argument("--beta-input-size", help="Beta branch input vector size", default=360, type=int)
 parser.add_argument("--gamma-input-size", help="Gamma branch input vector size", default=360, type=int)
 parser.add_argument("--delta-input-size", help="Delta branch input vector size", default=360, type=int)
+parser.add_argument("--epsilon-input-size", help="Epsilon branch input vector size", default=350, type=int)
+parser.add_argument("--zeta-input-size", help="Zeta branch input vector size", default=350, type=int)
 parser.add_argument("-c", "--clean", help = "Clean H5 datasets directory.", action=argparse.BooleanOptionalAction)
 parser.add_argument("-n", "--name", help = "Experiment name.", default="NONAME")
 parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=argparse.BooleanOptionalAction)
@@ -54,6 +56,8 @@ alpha_input_size=args.alpha_input_size
 beta_input_size=args.beta_input_size
 gamma_input_size=args.gamma_input_size
 delta_input_size=args.delta_input_size
+epsilon_input_size=args.epsilon_input_size
+zeta_input_size=args.zeta_input_size
 name = args.name
 debug_mode = args.debug
 remove_baseline = args.remove_baseline
@@ -80,6 +84,8 @@ def main():
     beta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=beta_input_size)
     gamma_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=gamma_input_size, channels=1)
     delta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=delta_input_size)
+    epsilon_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, window_size, wavelet_features_size, beta_input_size=epsilon_input_size)
+    zeta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, window_size, wavelet_features_size, beta_input_size=zeta_input_size)
 
     if clean_datasets_var:
         clean_datasets_directory()
@@ -155,7 +161,7 @@ def main():
         logger.info("Loaded validation dataset")
 
         #model = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
-        model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
+        model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
         training_config = TrainingConfig(batch_size=1500,
                                     n_epochs_stop=6,
                                     num_epochs=25,
@@ -175,10 +181,10 @@ def main():
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
+        trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
         logger.info(f"Loaded model: {trained_model}")
         test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
-        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], remove_baseline, include_domain, experiment_name=name)
+        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], include_domain, experiment_name=name)
         logger.info("Saving results to json file")
         results.save_json(f"results/{name}/{date}/fold_{fold}.json")
 

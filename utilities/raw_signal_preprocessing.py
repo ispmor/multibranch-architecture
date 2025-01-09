@@ -1,7 +1,7 @@
 import numpy as np
 import pywt
 import scipy
-
+from pybaselines import Baseline
 
 def sigma_est_dwt(detail_coeffs, distribution='Gaussian'):
     """Calculate the robust median estimator of the noise standard deviation.
@@ -98,3 +98,20 @@ def baseline_wandering_removal(signal, wavelet, level):
     reconstructed_approximates = [pywt.upcoef('a', coeffs[0][i], wavelet, level=level)[:N] for i in range(len(signal))]
     result = signal - reconstructed_approximates
     return result, coeffs
+
+
+
+
+def remove_baseline_drift(recording):
+    x=range(len(recording[0]))
+    equalised = []
+    params = []
+    for y in recording:
+        baseline_fitter = Baseline(x_data=x)
+        bkg, params_local = baseline_fitter.snip(
+            y, max_half_window=45, decreasing=True, smooth_half_window=4
+        )
+        bkg_to_equalise = bkg * -1
+        equalised.append(y+bkg_to_equalise)
+        params.append(params_local)
+    return equalised, params
