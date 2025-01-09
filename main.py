@@ -41,6 +41,8 @@ parser.add_argument( "--alpha-hidden", help = "Hidden size of alpha branch", def
 parser.add_argument( "--alpha-layers", help = "Number of layers of alpha branch", default=2, type=int)
 parser.add_argument( "--beta-hidden", help = "Hidden size of beta branch", default=7, type=int)
 parser.add_argument( "--beta-layers", help = "Number of layers of beta branch", default=2, type=int)
+parser.add_argument( "--epochs", help = "Number of epochs training should run", default=25, type=int)
+parser.add_argument( "--early-stop", help = "Number of epochs with no improvements after which training should stop", default=6, type=int)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -69,6 +71,8 @@ alpha_hidden=args.alpha_hidden
 alpha_layers=args.alpha_layers
 beta_hidden=args.beta_hidden
 beta_layers=args.beta_layers
+epochs=args.epochs
+early_stop=args.early_stop
 
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
@@ -163,8 +167,8 @@ def main():
         #model = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
         model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
         training_config = TrainingConfig(batch_size=1500,
-                                    n_epochs_stop=6,
-                                    num_epochs=25,
+                                    n_epochs_stop=early_stop,
+                                    num_epochs=epochs,
                                     lr_rate=0.01,
                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
                                     optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
