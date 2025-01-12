@@ -1,17 +1,16 @@
 # TODO LIST
 
 ## Implementation:
-- [...] Imlement Sokolov-Lyon index,
-- [...] Implement MacPhie index,
-- [...] Implement Cornell's index,
-- [...] Implement Levis index
+- [+] Imlement Sokolov-Lyon index,
+- [+] Implement MacPhie index,
+- [+] Implement Cornell's index,
+- [+] Implement Levis index
 - [+] Keep max 3 labels per recording
-- [] Make weights based on number of beats, not recordings.
-- [] Make domain knowledge being compute for each beat, or at least to correlate to each beat instead of being always the average
+- [+] Make weights based on number of beats, not recordings.
+- [+] Make domain knowledge being compute for each beat, or at least to correlate to each beat instead of being always the average
 - [] Add sex and age as part of domain knowledge
-- [...] Implement Romhilt index
+- [+] Implement Romhilt index
 
-Indexes are implemented but not yet included in the domain knowledge
 
 ## Experiments:
 - [+] LSTM,(7;2),  12 LEADS, No domain knowledge, BW Removed 
