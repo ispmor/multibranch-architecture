@@ -394,8 +394,8 @@ class BlendMLP(nn.Module):
 class MultibranchBeats(nn.Module):
     def __init__(self, modelA, modelB, modelC, modelD, modelE, modelF, classes):
         super(MultibranchBeats, self).__init__()
-        self.modelA = modelA
-        #self.modelB = modelB
+        #self.modelA = modelA
+        self.modelB = modelB
         #self.modelC = modelC
         #self.modelD = modelD
         #self.modelE = modelE
@@ -406,15 +406,15 @@ class MultibranchBeats(nn.Module):
     def forward(self, alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input):
         logger.debug(f"Alpha input shape: {alpha_input.shape}\nBeta input shape: {beta_input.shape}\nGamma input shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
 
-        outA = self.modelA(alpha_input)
-        #outB = self.modelB(beta_input)
+        #outA = self.modelA(alpha_input)
+        outB = self.modelB(beta_input)
         #outC = self.modelC(gamma_input)
         #outD = self.modelD(delta_input)
         #outE = self.modelE(epsilon_input)
         #outF = self.modelF(zeta_input)
 
         #out_concat = F.relu(torch.cat((outA, outB, outC, outD, outE, outF), dim=1))
-        out = self.linear(outA)#_concat)
+        out = self.linear(outB)#_concat)
         return out
 
 
@@ -496,8 +496,8 @@ def get_BlendMLP(alpha_config: BranchConfig, beta_config: BranchConfig, classes:
 
 
 def get_MultibranchBeats(alpha_config: BranchConfig, beta_config: BranchConfig, gamma_config: BranchConfig, delta_config: BranchConfig, epsilon_config: BranchConfig, zeta_config: BranchConfig, classes: list, device, leads: list) -> MultibranchBeats:
-    alpha_branch = get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, len(leads), classes, alpha_config.single_peak_length, None, None, alpha_config.beta_input_size, "beta", device)
-    beta_branch = None#get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, len(leads), classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
+    alpha_branch = None# get_single_network(alpha_config.network_name, alpha_config.hidden_size, alpha_config.layers, len(leads), classes, alpha_config.single_peak_length, None, None, alpha_config.beta_input_size, "beta", device)
+    beta_branch = get_single_network(beta_config.network_name, beta_config.hidden_size, beta_config.layers, len(leads), classes, beta_config.single_peak_length, None, None, beta_config.beta_input_size, "beta", device)
     gamma_branch = None#get_single_network(gamma_config.network_name, gamma_config.hidden_size, gamma_config.layers, gamma_config.channels, classes, gamma_config.single_peak_length, None, None, gamma_config.beta_input_size, "beta", device)
     delta_branch = None # get_single_network(delta_config.network_name, delta_config.hidden_size, delta_config.layers, len(leads), classes, delta_config.single_peak_length, None, None, delta_config.beta_input_size, "beta", device)
     epsilon_branch = None # get_single_network(epsilon_config.network_name, epsilon_config.hidden_size, epsilon_config.layers, len(leads), classes, epsilon_config.single_peak_length, None, None, epsilon_config.beta_input_size, "beta", device)
