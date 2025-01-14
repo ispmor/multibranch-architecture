@@ -395,9 +395,9 @@ class MultibranchBeats(nn.Module):
     def __init__(self, modelA, modelB, modelC, modelD, modelE, modelF, classes):
         super(MultibranchBeats, self).__init__()
         #self.modelA = modelA
-        self.modelB = modelB
+        #self.modelB = modelB
         #self.modelC = modelC
-        #self.modelD = modelD
+        self.modelD = modelD
         #self.modelE = modelE
         #self.modelF = modelF
         self.classes = classes
