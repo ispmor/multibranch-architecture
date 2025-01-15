@@ -3,10 +3,13 @@ from re import A
 from scipy.stats import alpha
 from networks.model import BlendMLP
 from utilities import batch_preprocessing
-
+import numpy as np
 import torch
 import logging
 import time
+from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +38,10 @@ class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
     training_config: TrainingConfig = None
-    def __init__(self, selected_classes: list, training_config: TrainingConfig) -> None:
+    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
+        self.tensorboardWriter = tensorboardWriter
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
@@ -82,6 +86,28 @@ class NetworkTrainer:
                 epoch_loss.append(loss)
         return torch.mean(torch.stack(epoch_loss))
 
+    def log_weights_to_tensorboard(self, last_layer_weights, classes, epoch):
+        X = range(last_layer_weights.shape[0])
+        weights_sum_per_column = np.sum(last_layer_weights, axis=0)
+        weights_sum_per_row = np.sum(last_layer_weights, axis=1)
+        self.tensorboardWriter.add_histogram("Weights/per_column", weights_sum_per_column)
+        self.tensorboardWriter.add_histogram("Weights/per_row", weights_sum_per_row)
+
+        fig, axs = plt.subplots(3,1)
+        heatmap =axs[0].imshow(last_layer_weights, cmap='plasma')
+        axs[0].set_xticks(X, labels=X, rotation=45, ha="right", rotation_mode="anchor")
+        axs[0].set_yticks(range(len(classes)), range(len(classes)))
+        axs[0].set_title(f"Last linear layer weights")
+
+        axs[1].bar(X, weights_sum_per_column)
+        axs[1].set_xticks(X, labels=X, rotation=45, ha="right", rotation_mode="anchor")
+
+        axs[2].bar(range(len(classes)), weights_sum_per_row)
+        axs[2].set_xticks(range(len(classes)), labels=classes, rotation=45, ha="right", rotation_mode="anchor")
+        fig.tight_layout()
+
+        self.tensorboardWriter.add_figure("Last_layer_weights", fig, epoch)
+        plt.close(fig)
 
 
 
@@ -89,11 +115,18 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
+
         for epoch in range(self.training_config.num_epochs):
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
+            self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
+            self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
             logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
             logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
+
+            last_layer_weights = blendModel.linear.weight.data.numpy()
+            self.log_weights_to_tensorboard(last_layer_weights, blendModel.classes, epoch)
+
             if epoch_validation_loss < min_val_loss:
                 epochs_no_improve = 0
                 min_val_loss = epoch_validation_loss

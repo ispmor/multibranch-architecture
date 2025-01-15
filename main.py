@@ -9,6 +9,7 @@ from sklearn.model_selection import KFold
 import argparse
 from multiprocessing.pool import ThreadPool
 
+from torch.utils.tensorboard import SummaryWriter
 
 
 logger = logging.getLogger(__name__)
@@ -109,6 +110,8 @@ def main():
                       datefmt='%Y-%m-%d %H:%M:%S')
     logger.info(f"!!! Experiment: {name} !!!")
 
+    tensorboardWriter = SummaryWriter(f"runs/{name}_{date}_{time}")
+
     utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size)
     
     header_files, recording_files = find_challenge_files(data_directory)
@@ -177,7 +180,7 @@ def main():
 
         training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
         validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
-        networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config)
+        networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config, tensorboardWriter=tensorboardWriter)
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
