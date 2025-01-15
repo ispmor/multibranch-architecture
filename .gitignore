@@ -1,4 +1,6 @@
 runs/
+*.json
+dump
 h5_datasets27/
 h5_datasets/
 models_repository/
