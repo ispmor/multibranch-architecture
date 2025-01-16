@@ -124,7 +124,7 @@ class NetworkTrainer:
             logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
             logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
 
-            last_layer_weights = blendModel.linear.weight.data.numpy()
+            last_layer_weights = torch.clone(blendModel.linear.weight.data).cpu().numpy()
             self.log_weights_to_tensorboard(last_layer_weights, blendModel.classes, epoch)
 
             if epoch_validation_loss < min_val_loss:
