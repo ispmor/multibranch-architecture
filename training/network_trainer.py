@@ -87,7 +87,7 @@ class NetworkTrainer:
         return torch.mean(torch.stack(epoch_loss))
 
     def log_weights_to_tensorboard(self, last_layer_weights, classes, epoch):
-        X = range(last_layer_weights.shape[0])
+        X = range(last_layer_weights.shape[1])
         weights_sum_per_column = np.sum(last_layer_weights, axis=0)
         weights_sum_per_row = np.sum(last_layer_weights, axis=1)
         self.tensorboardWriter.add_histogram("Weights/per_column", weights_sum_per_column)
