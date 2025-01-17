@@ -110,7 +110,6 @@ def main():
                       datefmt='%Y-%m-%d %H:%M:%S')
     logger.info(f"!!! Experiment: {name} !!!")
 
-    tensorboardWriter = SummaryWriter(f"runs/{name}_{date}_{time}")
 
     utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size)
     
@@ -153,6 +152,10 @@ def main():
     leads_idx = list(utility_functions.leads_idxs_dict[int(selected_leads_flag)].values()) #[utilityFunctions.twelve_leads.index(i) leads_idxs_dictfor i in leads]
     print(leads_idx)
     for fold, (data_training_full, data_test) in folds:
+        fold_time=datetime.now()
+        date = fold_time.date()
+        time = fold_time.time()
+        tensorboardWriter = SummaryWriter(f"runs/{name}_{date}_{time}_fold_{fold}")
         logger.info(f"Beginning {fold} fold processing")
         if fold_to_process == "*":
             utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
