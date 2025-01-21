@@ -153,9 +153,9 @@ def main():
     print(leads_idx)
     for fold, (data_training_full, data_test) in folds:
         fold_time=datetime.now()
-        date = fold_time.date()
-        time = fold_time.time()
-        tensorboardWriter = SummaryWriter(f"runs/{name}_{date}_{time}_fold_{fold}")
+        date_fold = fold_time.date()
+        time_fold = fold_time.time()
+        tensorboardWriter = SummaryWriter(f"runs/{name}_{date_fold}_{time_fold}_fold_{fold}")
         logger.info(f"Beginning {fold} fold processing")
         if fold_to_process == "*":
             utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
