@@ -22,7 +22,8 @@ class TrainingConfig:
     criterion = None
     optimizer = None
     device=None
-    def __init__(self, batch_size, n_epochs_stop, num_epochs, lr_rate, criterion, optimizer, device):
+    regularisation=None
+    def __init__(self, batch_size, n_epochs_stop, num_epochs, lr_rate, criterion, optimizer, device, regularisation):
         self.batch_size=batch_size
         self.n_epochs_stop=n_epochs_stop
         self.num_epochs=num_epochs
@@ -30,6 +31,7 @@ class TrainingConfig:
         self.criterion=criterion
         self.optimizer=optimizer
         self.device=device
+        self.regularisation=regularisation
 
 
 
@@ -45,7 +47,7 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True, lambda_reg=0.01):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         local_step = 0
         epoch_loss = []
@@ -57,6 +59,16 @@ class NetworkTrainer:
             forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
+            # Apply L1 regularisation
+            if self.training_config.regularisation == 'L1':
+                l1_norm = sum(p.abs().sum() for p in model.parameters())
+                loss += lambda_reg * l1_norm
+
+            # Apply L2 regularisation
+            elif self.training_config.regularisation == 'L2':
+                l2_norm = sum(p.pow(2).sum() for p in model.parameters())
+                loss += lambda_reg * l2_norm
+
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
             loss.backward()

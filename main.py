@@ -44,6 +44,7 @@ parser.add_argument( "--beta-hidden", help = "Hidden size of beta branch", defau
 parser.add_argument( "--beta-layers", help = "Number of layers of beta branch", default=2, type=int)
 parser.add_argument( "--epochs", help = "Number of epochs training should run", default=25, type=int)
 parser.add_argument( "--early-stop", help = "Number of epochs with no improvements after which training should stop", default=6, type=int)
+parser.add_argument( "--regularisation", choices={"L1", "L2"}, help="Regularisation for model weights penalisation", default=None)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -74,7 +75,7 @@ beta_hidden=args.beta_hidden
 beta_layers=args.beta_layers
 epochs=args.epochs
 early_stop=args.early_stop
-
+regularisation=args.regularisation
 
 device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cpu")
 
@@ -178,7 +179,8 @@ def main():
                                     lr_rate=0.01,
                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
                                     optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
-                                    device=device
+                                    device=device,
+                                    regularisation=regularisation
                                     )
 
         training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
