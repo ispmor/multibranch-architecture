@@ -49,6 +49,7 @@ class NetworkTrainer:
 
     def train_network(self, model, training_data_loader, epoch, include_domain=True, lambda_reg=0.01):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
+        logger.info(f"Regularisation selected: {self.training_config.regularisation}")
         local_step = 0
         epoch_loss = []
         model.to(self.training_config.device)
