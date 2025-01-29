@@ -135,6 +135,6 @@ def multibranch_division(batch):
     epsilon_input = x_drift_removed
     zeta_input = x_bw_removed
 
-    logger.debug(f"Shape nf alpha_input: {alpha_input.shape}\nShape of beta_input: {beta_input.shape}\nGamma shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}\nEpsilon input shape: {epsilon_input.shape}\nZeta input shape: {zeta_input.shape}")
+    #logger.debug(f"Shape nf alpha_input: {alpha_input.shape}\nShape of beta_input: {beta_input.shape}\nGamma shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}\nEpsilon input shape: {epsilon_input.shape}\nZeta input shape: {zeta_input.shape}")
 
     return alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input, y

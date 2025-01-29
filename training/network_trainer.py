@@ -8,6 +8,7 @@ import torch
 import logging
 import time
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn.utils.prune as prune
 import matplotlib.pyplot as plt
 
 
@@ -50,6 +51,39 @@ class NetworkTrainer:
     def train_network(self, model, training_data_loader, epoch, include_domain=True, lambda_reg=0.01):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         logger.info(f"Regularisation selected: {self.training_config.regularisation}")
+        parameters_to_prune=(
+                (model.modelA.lstm_alpha1, 'weight_ih_l0'),
+                (model.modelA.lstm_alpha1, 'weight_ih_l1'),
+                (model.modelA.lstm_alpha1, 'weight_hh_l0'),
+                (model.modelA.lstm_alpha1, 'weight_hh_l1'),
+                (model.modelA.fc, 'weight'),
+                (model.modelB.lstm_alpha1, 'weight_ih_l0'),
+                (model.modelB.lstm_alpha1, 'weight_ih_l1'),
+                (model.modelB.lstm_alpha1, 'weight_hh_l0'),
+                (model.modelB.lstm_alpha1, 'weight_hh_l1'),
+                (model.modelB.fc, 'weight'),
+                (model.modelC.lstm_alpha1, 'weight_ih_l0'),
+                (model.modelC.lstm_alpha1, 'weight_ih_l1'),
+                (model.modelC.lstm_alpha1, 'weight_hh_l0'),
+                (model.modelC.lstm_alpha1, 'weight_hh_l1'),
+                (model.modelC.fc, 'weight'),
+                (model.modelD.lstm_alpha1, 'weight_ih_l0'),
+                (model.modelD.lstm_alpha1, 'weight_ih_l1'),
+                (model.modelD.lstm_alpha1, 'weight_hh_l0'),
+                (model.modelD.lstm_alpha1, 'weight_hh_l1'),
+                (model.modelD.fc, 'weight'),
+                (model.modelE.lstm_alpha1, 'weight_ih_l0'),
+                (model.modelE.lstm_alpha1, 'weight_ih_l1'),
+                (model.modelE.lstm_alpha1, 'weight_hh_l0'),
+                (model.modelE.lstm_alpha1, 'weight_hh_l1'),
+                (model.modelE.fc, 'weight'),
+                (model.modelF.lstm_alpha1, 'weight_ih_l0'),
+                (model.modelF.lstm_alpha1, 'weight_ih_l1'),
+                (model.modelF.lstm_alpha1, 'weight_hh_l0'),
+                (model.modelF.lstm_alpha1, 'weight_hh_l1'),
+                (model.modelF.fc, 'weight'),
+                (model.linear, 'weight')
+                )
         local_step = 0
         epoch_loss = []
         model.to(self.training_config.device)
@@ -77,12 +111,47 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
+        self.log_weights_sparsity(model)
         result = torch.mean(torch.stack(epoch_loss))
         return result
 
 
 
+
+    def log_weights_sparsity(self, model):
+        logger.debug("Sparsity in model.modelA.lstm_alpha1.weight_ih_l0: {:.2f}%".format(100. * float(torch.sum(model.modelA.lstm_alpha1.weight_ih_l0==0))/float(model.modelA.lstm_alpha1.weight_ih_l0.nelement())))
+        logger.debug("Sparsity in model.modelA.lstm_alpha1.weight_ih_l1: {:.2f}%".format(100. * float(torch.sum(model.modelA.lstm_alpha1.weight_ih_l1==0))/float(model.modelA.lstm_alpha1.weight_ih_l1.nelement())))
+        logger.debug("Sparsity in model.modelA.lstm_alpha1.weight_hh_l0: {:.2f}%".format(100. * float(torch.sum(model.modelA.lstm_alpha1.weight_hh_l0==0))/float(model.modelA.lstm_alpha1.weight_hh_l0.nelement())))
+        logger.debug("Sparsity in model.modelA.lstm_alpha1.weight_hh_l1: {:.2f}%".format(100. * float(torch.sum(model.modelA.lstm_alpha1.weight_hh_l1==0))/float(model.modelA.lstm_alpha1.weight_hh_l1.nelement())))
+        logger.debug("Sparsity in model.modelA.fc.weight: {:.2f}%".format(100. * float(torch.sum(model.modelA.fc.weight==0))/float(model.modelA.fc.weight.nelement())))
+        logger.debug("Sparsity in model.modelB.lstm_alpha1.weight_ih_l0: {:.2f}%".format(100. * float(torch.sum(model.modelB.lstm_alpha1.weight_ih_l0==0))/float(model.modelB.lstm_alpha1.weight_ih_l0.nelement())))
+        logger.debug("Sparsity in model.modelB.lstm_alpha1.weight_ih_l1: {:.2f}%".format(100. * float(torch.sum(model.modelB.lstm_alpha1.weight_ih_l1==0))/float(model.modelB.lstm_alpha1.weight_ih_l1.nelement())))
+        logger.debug("Sparsity in model.modelB.lstm_alpha1.weight_hh_l0: {:.2f}%".format(100. * float(torch.sum(model.modelB.lstm_alpha1.weight_hh_l0==0))/float(model.modelB.lstm_alpha1.weight_hh_l0.nelement())))
+        logger.debug("Sparsity in model.modelB.lstm_alpha1.weight_hh_l1: {:.2f}%".format(100. * float(torch.sum(model.modelB.lstm_alpha1.weight_hh_l1==0))/float(model.modelB.lstm_alpha1.weight_hh_l1.nelement())))
+        logger.debug("Sparsity in model.modelB.fc.weight: {:.2f}%".format(100. * float(torch.sum(model.modelB.fc.weight==0))/float(model.modelB.fc.weight.nelement())))
+        logger.debug("Sparsity in model.modelC.lstm_alpha1.weight_ih_l0: {:.2f}%".format(100. * float(torch.sum(model.modelC.lstm_alpha1.weight_ih_l0==0))/float(model.modelC.lstm_alpha1.weight_ih_l0.nelement())))
+        logger.debug("Sparsity in model.modelC.lstm_alpha1.weight_ih_l1: {:.2f}%".format(100. * float(torch.sum(model.modelC.lstm_alpha1.weight_ih_l1==0))/float(model.modelC.lstm_alpha1.weight_ih_l1.nelement())))
+        logger.debug("Sparsity in model.modelC.lstm_alpha1.weight_hh_l0: {:.2f}%".format(100. * float(torch.sum(model.modelC.lstm_alpha1.weight_hh_l0==0))/float(model.modelC.lstm_alpha1.weight_hh_l0.nelement())))
+        logger.debug("Sparsity in model.modelC.lstm_alpha1.weight_hh_l1: {:.2f}%".format(100. * float(torch.sum(model.modelC.lstm_alpha1.weight_hh_l1==0))/float(model.modelC.lstm_alpha1.weight_hh_l1.nelement())))
+        logger.debug("Sparsity in model.modelC.fc.weight: {:.2f}%".format(100. * float(torch.sum(model.modelC.fc.weight==0))/float(model.modelC.fc.weight.nelement())))
+        logger.debug("Sparsity in model.modelD.lstm_alpha1.weight_ih_l0: {:.2f}%".format(100. * float(torch.sum(model.modelD.lstm_alpha1.weight_ih_l0==0))/float(model.modelD.lstm_alpha1.weight_ih_l0.nelement())))
+        logger.debug("Sparsity in model.modelD.lstm_alpha1.weight_ih_l1: {:.2f}%".format(100. * float(torch.sum(model.modelD.lstm_alpha1.weight_ih_l1==0))/float(model.modelD.lstm_alpha1.weight_ih_l1.nelement())))
+        logger.debug("Sparsity in model.modelD.lstm_alpha1.weight_hh_l0: {:.2f}%".format(100. * float(torch.sum(model.modelD.lstm_alpha1.weight_hh_l0==0))/float(model.modelD.lstm_alpha1.weight_hh_l0.nelement())))
+        logger.debug("Sparsity in model.modelD.lstm_alpha1.weight_hh_l1: {:.2f}%".format(100. * float(torch.sum(model.modelD.lstm_alpha1.weight_hh_l1==0))/float(model.modelD.lstm_alpha1.weight_hh_l1.nelement())))
+        logger.debug("Sparsity in model.modelD.fc.weight: {:.2f}%".format(100. * float(torch.sum(model.modelD.fc.weight==0))/float(model.modelD.fc.weight.nelement())))
+        logger.debug("Sparsity in model.modelE.lstm_alpha1.weight_ih_l0: {:.2f}%".format(100. * float(torch.sum(model.modelE.lstm_alpha1.weight_ih_l0==0))/float(model.modelE.lstm_alpha1.weight_ih_l0.nelement())))
+        logger.debug("Sparsity in model.modelE.lstm_alpha1.weight_ih_l1: {:.2f}%".format(100. * float(torch.sum(model.modelE.lstm_alpha1.weight_ih_l1==0))/float(model.modelE.lstm_alpha1.weight_ih_l1.nelement())))
+        logger.debug("Sparsity in model.modelE.lstm_alpha1.weight_hh_l0: {:.2f}%".format(100. * float(torch.sum(model.modelE.lstm_alpha1.weight_hh_l0==0))/float(model.modelE.lstm_alpha1.weight_hh_l0.nelement())))
+        logger.debug("Sparsity in model.modelE.lstm_alpha1.weight_hh_l1: {:.2f}%".format(100. * float(torch.sum(model.modelE.lstm_alpha1.weight_hh_l1==0))/float(model.modelE.lstm_alpha1.weight_hh_l1.nelement())))
+        logger.debug("Sparsity in model.modelE.fc.weight: {:.2f}%".format(100. * float(torch.sum(model.modelE.fc.weight==0))/float(model.modelE.fc.weight.nelement())))
+        logger.debug("Sparsity in model.modelF.lstm_alpha1.weight_ih_l0: {:.2f}%".format(100. * float(torch.sum(model.modelF.lstm_alpha1.weight_ih_l0==0))/float(model.modelF.lstm_alpha1.weight_ih_l0.nelement())))
+        logger.debug("Sparsity in model.modelF.lstm_alpha1.weight_ih_l1: {:.2f}%".format(100. * float(torch.sum(model.modelF.lstm_alpha1.weight_ih_l1==0))/float(model.modelF.lstm_alpha1.weight_ih_l1.nelement())))
+        logger.debug("Sparsity in model.modelF.lstm_alpha1.weight_hh_l0: {:.2f}%".format(100. * float(torch.sum(model.modelF.lstm_alpha1.weight_hh_l0==0))/float(model.modelF.lstm_alpha1.weight_hh_l0.nelement())))
+        logger.debug("Sparsity in model.modelF.lstm_alpha1.weight_hh_l1: {:.2f}%".format(100. * float(torch.sum(model.modelF.lstm_alpha1.weight_hh_l1==0))/float(model.modelF.lstm_alpha1.weight_hh_l1.nelement())))
+        logger.debug("Sparsity in model.modelF.fc.weight: {:.2f}%".format(100. * float(torch.sum(model.modelF.fc.weight==0))/float(model.modelF.fc.weight.nelement())))
+        logger.debug("Sparsity in model.linear.weight: {:.2f}%".format(100. * float(torch.sum(model.linear.weight==0))/float(model.linear.weight.nelement())))
 
 
     def validate_network(self, model, validation_data_loader, epoch, include_domain=True):

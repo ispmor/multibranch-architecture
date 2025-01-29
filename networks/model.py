@@ -404,8 +404,6 @@ class MultibranchBeats(nn.Module):
         self.linear = nn.Linear( 6 * len(classes), len(classes))
 
     def forward(self, alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input):
-        logger.debug(f"Alpha input shape: {alpha_input.shape}\nBeta input shape: {beta_input.shape}\nGamma input shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
-
         outA = self.modelA(alpha_input)
         outB = self.modelB(beta_input)
         outC = self.modelC(gamma_input)
@@ -502,6 +500,10 @@ def get_MultibranchBeats(alpha_config: BranchConfig, beta_config: BranchConfig, 
     delta_branch = get_single_network(delta_config.network_name, delta_config.hidden_size, delta_config.layers, len(leads), classes, delta_config.single_peak_length, None, None, delta_config.beta_input_size, "beta", device)
     epsilon_branch = get_single_network(epsilon_config.network_name, epsilon_config.hidden_size, epsilon_config.layers, len(leads), classes, epsilon_config.single_peak_length, None, None, epsilon_config.beta_input_size, "beta", device)
     zeta_branch = get_single_network(zeta_config.network_name, zeta_config.hidden_size, zeta_config.layers, len(leads), classes, zeta_config.single_peak_length, None, None, zeta_config.beta_input_size, "beta", device)
+    
 
-    return MultibranchBeats(alpha_branch, beta_branch, gamma_branch, delta_branch, epsilon_branch, zeta_branch, classes)
+    model = MultibranchBeats(alpha_branch, beta_branch, gamma_branch, delta_branch, epsilon_branch, zeta_branch, classes)
+    for name, param in model.named_parameters():
+        logger.debug(f"Name: {name}, param: {param}")
+    return model
 
