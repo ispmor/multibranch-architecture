@@ -219,7 +219,8 @@ class NetworkTrainer:
 
     def remove_pruning_layers(self, parameters_to_prune):
         for m, weight_name in parameters_to_prune:
-            prune.remove(m, weight_name)
+            if prune.is_pruned(m):
+                prune.remove(m, weight_name)
 
 
 
