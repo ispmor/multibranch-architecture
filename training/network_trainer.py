@@ -48,42 +48,9 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True, lambda_reg=0.01):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         logger.info(f"Regularisation selected: {self.training_config.regularisation}")
-        parameters_to_prune=(
-                (model.modelA.lstm_alpha1, 'weight_ih_l0'),
-                (model.modelA.lstm_alpha1, 'weight_ih_l1'),
-                (model.modelA.lstm_alpha1, 'weight_hh_l0'),
-                (model.modelA.lstm_alpha1, 'weight_hh_l1'),
-                (model.modelA.fc, 'weight'),
-                (model.modelB.lstm_alpha1, 'weight_ih_l0'),
-                (model.modelB.lstm_alpha1, 'weight_ih_l1'),
-                (model.modelB.lstm_alpha1, 'weight_hh_l0'),
-                (model.modelB.lstm_alpha1, 'weight_hh_l1'),
-                (model.modelB.fc, 'weight'),
-                (model.modelC.lstm_alpha1, 'weight_ih_l0'),
-                (model.modelC.lstm_alpha1, 'weight_ih_l1'),
-                (model.modelC.lstm_alpha1, 'weight_hh_l0'),
-                (model.modelC.lstm_alpha1, 'weight_hh_l1'),
-                (model.modelC.fc, 'weight'),
-                (model.modelD.lstm_alpha1, 'weight_ih_l0'),
-                (model.modelD.lstm_alpha1, 'weight_ih_l1'),
-                (model.modelD.lstm_alpha1, 'weight_hh_l0'),
-                (model.modelD.lstm_alpha1, 'weight_hh_l1'),
-                (model.modelD.fc, 'weight'),
-                (model.modelE.lstm_alpha1, 'weight_ih_l0'),
-                (model.modelE.lstm_alpha1, 'weight_ih_l1'),
-                (model.modelE.lstm_alpha1, 'weight_hh_l0'),
-                (model.modelE.lstm_alpha1, 'weight_hh_l1'),
-                (model.modelE.fc, 'weight'),
-                (model.modelF.lstm_alpha1, 'weight_ih_l0'),
-                (model.modelF.lstm_alpha1, 'weight_ih_l1'),
-                (model.modelF.lstm_alpha1, 'weight_hh_l0'),
-                (model.modelF.lstm_alpha1, 'weight_hh_l1'),
-                (model.modelF.fc, 'weight'),
-                (model.linear, 'weight')
-                )
         local_step = 0
         epoch_loss = []
         model.to(self.training_config.device)
@@ -94,15 +61,6 @@ class NetworkTrainer:
             forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
-            # Apply L1 regularisation
-            if self.training_config.regularisation == 'L1':
-                l1_norm = sum(p.abs().sum() for p in model.parameters())
-                loss += lambda_reg * l1_norm
-
-            # Apply L2 regularisation
-            elif self.training_config.regularisation == 'L2':
-                l2_norm = sum(p.pow(2).sum() for p in model.parameters())
-                loss += lambda_reg * l2_norm
 
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
@@ -197,9 +155,42 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
+        parameters_to_prune=(
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelA.fc, 'weight'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelB.fc, 'weight'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelC.fc, 'weight'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelD.fc, 'weight'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelE.fc, 'weight'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelF.fc, 'weight'),
+                (blendModel.linear, 'weight')
+                )
 
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
@@ -215,6 +206,7 @@ class NetworkTrainer:
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
                 model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
                 logger.debug(f"saving model: {model_name}")
+                self.remove_pruning_layers(parameters_to_prune)
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
             else:
@@ -224,6 +216,10 @@ class NetworkTrainer:
                 break
             logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
+
+    def remove_pruning_layers(self, parameters_to_prune):
+        for m, weight_name in parameters_to_prune:
+            prune.remove(m, weight_name)
 
 
 
