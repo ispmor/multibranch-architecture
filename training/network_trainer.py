@@ -69,7 +69,6 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         self.log_weights_sparsity(model)
         result = torch.mean(torch.stack(epoch_loss))
@@ -190,6 +189,8 @@ class NetworkTrainer:
                 )
 
         for epoch in range(self.training_config.num_epochs):
+            if epoch >0 and epoch % 10 ==0:
+                prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
