@@ -189,8 +189,6 @@ class NetworkTrainer:
                 )
 
         for epoch in range(self.training_config.num_epochs):
-            if epoch >0 and epoch % 10 ==0:
-                prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
@@ -212,6 +210,10 @@ class NetworkTrainer:
                 best_model_name=model_name
             else:
                 epochs_no_improve += 1
+
+            if epochs_no_improve > 4:
+                prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.2)
+
             if epoch > 10 and epochs_no_improve >= self.training_config.n_epochs_stop:
                 logger.warn(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
                 break
