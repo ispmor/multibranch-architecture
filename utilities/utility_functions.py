@@ -606,7 +606,7 @@ class UtilityFunctions:
         logger.debug(f"Scalar outputs shape: {labels.shape}")
         for i,header_filename in enumerate(header_files):
             header = load_header(header_filename)
-            recording = load_recording(recording_files[i])
+            recording = self.load_and_equalize_recording(recording_files[i], header, header_filename, 500, leads)
             c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, include_domain=include_domain)
             logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")
