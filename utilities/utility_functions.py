@@ -1,3 +1,4 @@
+from re import A
 import h5py
 import neurokit2 as nk
 from networks.model import BlendMLP, get_BlendMLP, get_MultibranchBeats
@@ -607,6 +608,9 @@ class UtilityFunctions:
         for i,header_filename in enumerate(header_files):
             header = load_header(header_filename)
             recording = self.load_and_equalize_recording(recording_files[i], header, header_filename, 500, leads)
+            if recording is None:
+                logger.warn(f"Recording is NONE for header: {header}")
+                continue
             c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, include_domain=include_domain)
             logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
         logger.info("########################################################")
