@@ -606,13 +606,18 @@ class UtilityFunctions:
         logger.debug(f"Labels shape: {labels.shape}")
         logger.debug(f"Scalar outputs shape: {labels.shape}")
         for i,header_filename in enumerate(header_files):
-            header = load_header(header_filename)
-            recording = self.load_and_equalize_recording(recording_files[i], header, header_filename, 500, leads)
-            if recording is None:
-                logger.warn(f"Recording is NONE for header: {header}")
+            try:
+                header = load_header(header_filename)
+                recording = self.load_and_equalize_recording(recording_files[i], header, header_filename, 500, leads)
+                if recording is None:
+                    logger.warn(f"Recording is NONE for header: {header}")
+                    continue
+                c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, include_domain=include_domain)
+                logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
+            except Exception as e:
+                logger.warn(f"Currently processed file: {header_file}, issue:{e}", exc_info=True)
                 continue
-            c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, include_domain=include_domain)
-            logger.debug(f"Scalar outputs: {scalar_outputs[i]}\nBinary outputs: {binary_outputs[i]}\nC: {c[i]}")
+
         logger.info("########################################################")
         logger.info(f"#####   Fold={fold}, Leads: {len(leads)}")
         logger.info("########################################################")
