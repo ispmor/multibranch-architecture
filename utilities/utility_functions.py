@@ -85,6 +85,8 @@ class UtilityFunctions:
         self.training_weights_filename = datasets_dir + "weights_fold{0}_training.csv"
         self.training_with_validation_weights_filename = datasets_dir + "weights_full_fold{0}_training.csv"
 
+        logger.debug(f"Initiated UtilityFunctions: {self.__dict__}")
+
     #TODO create def initiate_classes_count method which will zero the classes_counts, also we need a global count
 
     def calculate_pos_weights(self, class_counts):
@@ -234,14 +236,14 @@ class UtilityFunctions:
         peaks_considered = []
         horizon = self.window_size // 2
         for i, peak in enumerate(peaks):
-            if peak < horizon:
-                signal_local = drift_removed_recording[:, 0: single_peak_length]
-                signal_local_raw = recording[:, 0: single_peak_length]
-                signal_local_bw = bw_removed_recording[:, 0: single_peak_length]
-                wavelet_features = self.get_wavelet_features(signal_local,'db2')
+            if peak + self.window_size < len(drift_removed_recording[0]):
+                signal_local = drift_removed_recording[:, peak: peak + self.window_size]
+                signal_local_raw = recording[:, peak: peak + self.window_size]
+                signal_local_bw = bw_removed_recording[:, peak: peak + self.window_size]
+                wavelet_features = self.get_wavelet_features(signal_local, 'db2')
                 peaks_considered.append(peak)
-            elif peak + horizon < len(drift_removed_recording[0]):
-                signal_local = drift_removed_recording[:, peak-horizon: peak + horizon]
+            elif peak + self.window_size // 2 < len(drift_removed_recording[0]):
+                signal_local = drift_removed_recording[:, peak - horizon: peak + horizon]
                 signal_local_raw = recording[:, peak-horizon: peak + horizon]
                 signal_local_bw = bw_removed_recording[:, peak-horizon: peak + horizon]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
@@ -267,6 +269,10 @@ class UtilityFunctions:
             domain_knowledge_analysis = analyse_recording(drift_removed_recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks_considered)
             rr_features = analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)], len(peaks_considered))
             logger.debug(f"RR_features shape after dict to array: {rr_features.shape}")
+            logger.debug(f"X_raw shape: {x_raw.shape}")
+            logger.debug(f"X_drift_removed shape: {x_drift_removed.shape}")
+            logger.debug(f"X_baseline_removed shape: {x_baseline_removed.shape}")
+            logger.debug(f"coeffs shape: {coeffs.shape}")
 
             return x_raw, x_drift_removed, x_baseline_removed, rr_features, coeffs
         except Exception as e:
@@ -394,9 +400,9 @@ class UtilityFunctions:
                                       chunks=(1, num_classes))
             rrset = grp.create_dataset("rr_features", (1, len(leads), self.rr_features_size), maxshape=(None, len(leads), self.rr_features_size), dtype='f',
                                        chunks=(1, len(leads), self.rr_features_size))
-            waveset = grp.create_dataset("wavelet_features", (1, len(leads), 185), maxshape=(None, len(leads), 185),
+            waveset = grp.create_dataset("wavelet_features", (1, len(leads), self.wavelet_features_size), maxshape=(None, len(leads), self.wavelet_features_size),
                                          dtype='f',
-                                         chunks=(1, len(leads), 185))
+                                         chunks=(1, len(leads), self.wavelet_features_size))
 
             nodriftset = grp.create_dataset("drift_removed", (1, len(leads), self.window_size), maxshape=(None, len(leads), self.window_size),
                                          dtype='f',
