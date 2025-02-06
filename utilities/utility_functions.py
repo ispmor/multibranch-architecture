@@ -235,7 +235,7 @@ class UtilityFunctions:
         coeffs = []
         peaks_considered = []
         horizon = self.window_size // 2
-        recording_length=drift_removed_recording[0]
+        recording_length=len(drift_removed_recording[0])
         for peak in range(0, recording_length, 500):
             if peak + self.window_size < recording_length:
                 signal_local = drift_removed_recording[:, peak: peak + self.window_size]
