@@ -505,8 +505,6 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks
 
     for lead_name, idx in leads_idxs.items():
         analysed_results[lead_name].pop('signal', None)
-        analysed_results[lead_name].pop('info', None)
-
 
     return analysed_results
 
@@ -523,38 +521,54 @@ def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
     else:
         cross_lead_parameters = ['rhythm_origin_vertical','rhythm_origin_horizontal']
 
-
-    for peak_idx in range(peaks_count):
-        tmp_result_lead = []
-        for lead_name, idx in leads_idxs.items():
-            tmp_result = []
-            for key in per_lead_parameters:
-                if key in analysis_dict[lead_name]:
-                    try:
-                        if type(analysis_dict[lead_name][key]) == list:
-                            tmp_result.append(analysis_dict[lead_name][key][peak_idx])
-                        else:
-                            tmp_result.append(analysis_dict[lead_name][key])
-                    except Exception as e:
-                        logger.error(f"Key {key}, peak_idx {peak_idx}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
-                        raise e
-                else:
-                    raise Exception(f"No key {key} in results dict")
-            for key in cross_lead_parameters:
-                if key in analysis_dict:
-                    try:
-                        if type(analysis_dict[key]) == list:
-                            tmp_result.append(analysis_dict[key][peak_idx])
-                        else:
-                            tmp_result.append(analysis_dict[key])
-                    except Exception as e:
-                        logger.error(f"Key {key}, peak_idx {peak_idx}, array from result: {analysis_dict[key]}")
-                        raise e
-                else:
-                    logger.warn(f"No key {key} in results dict")
-                    tmp_result.append(0)
-
-            tmp_result_lead.append(tmp_result)
-        result.append(tmp_result_lead)
+    maximal_number_of_peaks = min([len(analysis_dict[lead_name]['info']['ECG_R_Peaks']) for lead_name, idx in leads_idxs.items()])
+    global_peak_counter=0
+    for step in range(0, peaks_count*500, 500):
+        peaks_idxs = [i for i, value in enumerate(analysis_dict['I']['info']['ECG_R_Peaks']) if step <= value < step+500]
+        step_results = []
+        for peak_idx in range(global_peak_counter, global_peak_counter+len(peaks_idxs)):
+            if peak_idx >= maximal_number_of_peaks:
+                break
+            tmp_result_lead = []
+            for lead_name, idx in leads_idxs.items():
+                tmp_result = []
+                for key in per_lead_parameters:
+                    if key in analysis_dict[lead_name]:
+                        try:
+                            if type(analysis_dict[lead_name][key]) == list:
+                                if peak_idx < len(analysis_dict[lead_name][key]):
+                                    tmp_result.append(analysis_dict[lead_name][key][peak_idx])
+                                else:
+                                    tmp_result.append(0)
+                            else:
+                                tmp_result.append(analysis_dict[lead_name][key])
+                        except Exception as e:
+                            logger.error(f"Key {key}, peak_idx {peak_idx}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
+                            raise e
+                    else:
+                        raise Exception(f"No key {key} in results dict")
+                for key in cross_lead_parameters:
+                    if key in analysis_dict:
+                        try:
+                            if type(analysis_dict[key]) == list:
+                                tmp_result.append(analysis_dict[key][peak_idx])
+                            else:
+                                tmp_result.append(analysis_dict[key])
+                        except Exception as e:
+                            logger.error(f"Key {key}, peak_idx {peak_idx}, array from result: {analysis_dict[key]}")
+                            raise e
+                    else:
+                        logger.warn(f"No key {key} in results dict")
+                        tmp_result.append(0)
+                tmp_result_lead.append(tmp_result)
+            step_results.append(tmp_result_lead)
+        mean_to_add = np.mean(np.array(step_results), axis=0)
+        if np.isnan(mean_to_add).any():
+            result.append(np.zeros((12,16)))
+        else:
+            result.append(mean_to_add)
+        global_peak_counter += len(peaks_idxs)
+    logger.debug(f"Result now: {result}")
+    
     return np.array(result, dtype=np.float64)
 

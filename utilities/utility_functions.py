@@ -243,12 +243,6 @@ class UtilityFunctions:
                 signal_local_bw = bw_removed_recording[:, peak: peak + self.window_size]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
                 peaks_considered.append(peak)
-            elif peak + horizon < recording_length:
-                signal_local = drift_removed_recording[:, peak - horizon: peak + horizon]
-                signal_local_raw = recording[:, peak-horizon: peak + horizon]
-                signal_local_bw = bw_removed_recording[:, peak-horizon: peak + horizon]
-                wavelet_features = self.get_wavelet_features(signal_local, 'db2')
-                peaks_considered.append(peak)
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
