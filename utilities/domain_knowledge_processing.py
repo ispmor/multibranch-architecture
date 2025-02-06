@@ -521,7 +521,7 @@ def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
     else:
         cross_lead_parameters = ['rhythm_origin_vertical','rhythm_origin_horizontal']
 
-    maximal_number_of_peaks = min([len(analysis_dict[lead_name]['info']['ECG_R_Peaks']) for lead_name, idx in leads_idxs.items()])
+    maximal_number_of_peaks = min([len(analysis_dict[lead_name]['info']['ECG_R_Peaks']) for lead_name, idx in leads_idxs.items() if lead_name in analysis_dict])
     global_peak_counter=0
     for step in range(0, peaks_count*500, 500):
         peaks_idxs = [i for i, value in enumerate(analysis_dict['I']['info']['ECG_R_Peaks']) if step <= value < step+500]
