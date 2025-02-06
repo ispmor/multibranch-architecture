@@ -235,14 +235,15 @@ class UtilityFunctions:
         coeffs = []
         peaks_considered = []
         horizon = self.window_size // 2
-        for i, peak in enumerate(peaks):
-            if peak + self.window_size < len(drift_removed_recording[0]):
+        recording_length=drift_removed_recording[0]
+        for peak in range(0, recording_length, 500):
+            if peak + self.window_size < recording_length:
                 signal_local = drift_removed_recording[:, peak: peak + self.window_size]
                 signal_local_raw = recording[:, peak: peak + self.window_size]
                 signal_local_bw = bw_removed_recording[:, peak: peak + self.window_size]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
                 peaks_considered.append(peak)
-            elif peak + self.window_size // 2 < len(drift_removed_recording[0]):
+            elif peak + horizon < recording_length:
                 signal_local = drift_removed_recording[:, peak - horizon: peak + horizon]
                 signal_local_raw = recording[:, peak-horizon: peak + horizon]
                 signal_local_bw = bw_removed_recording[:, peak-horizon: peak + horizon]
