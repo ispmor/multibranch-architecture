@@ -550,10 +550,16 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,window=None, pantom
 
     if heart_axis is not None:
         analysed_results['heart_axis']=heart_axis
+    else:
+        analysed_results['heart_axis']=pad_array([])
 
     if rhythm_origin:
         analysed_results['rhythm_origin_vertical']=rhythm_origin[0]
         analysed_results['rhythm_origin_horizontal']=rhythm_origin[1]
+    else:
+        analysed_results['rhythm_origin_vertical']=0
+        analysed_results['rhythm_origin_horizontal']=0
+
 
     analysed_results['label'] = label
 
