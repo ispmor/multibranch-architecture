@@ -242,7 +242,7 @@ class UtilityFunctions:
                 signal_local_raw = recording[:, peak: peak + self.window_size]
                 signal_local_bw = bw_removed_recording[:, peak: peak + self.window_size]
                 wavelet_features = self.get_wavelet_features(signal_local, 'db2')
-                peaks_considered.append(peak)
+                peaks_considered.extend([p for p in peaks if peak <= p < peak+500])
             else:
                 logger.debug(f"Skipping append as peak = {peak}")
                 continue
@@ -259,20 +259,24 @@ class UtilityFunctions:
         coeffs = np.nan_to_num(np.asarray(coeffs,  dtype=np.float64))
 
         rr_features = np.zeros((x_drift_removed.shape[0], drift_removed_recording.shape[0], self.rr_features_size), dtype=np.float64)
+        counter = 0 
+        for peak in range(0, recording_length-self.window_size, 500):
 
-        try:
-            domain_knowledge_analysis = analyse_recording(drift_removed_recording, signals, infos, rates,leads_idxs_dict[len(leads)], pantompkins_peaks=peaks_considered)
-            rr_features = analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)], len(peaks_considered))
-            logger.debug(f"RR_features shape after dict to array: {rr_features.shape}")
-            logger.debug(f"X_raw shape: {x_raw.shape}")
-            logger.debug(f"X_drift_removed shape: {x_drift_removed.shape}")
-            logger.debug(f"X_baseline_removed shape: {x_baseline_removed.shape}")
-            logger.debug(f"coeffs shape: {coeffs.shape}")
+            try:
+                domain_knowledge_analysis = analyse_recording(drift_removed_recording, signals, infos, rates,leads_idxs_dict[len(leads)], window=(peak, peak+self.window_size), pantompkins_peaks=peaks_considered)
+                logger.debug(f"{domain_knowledge_analysis}")
+                rr_features[counter] = analysis_dict_to_array(domain_knowledge_analysis, leads_idxs_dict[len(leads)])
+                counter += 1
+                logger.debug(f"RR_features shape after dict to array: {rr_features.shape}")
+                logger.debug(f"X_raw shape: {x_raw.shape}")
+                logger.debug(f"X_drift_removed shape: {x_drift_removed.shape}")
+                logger.debug(f"X_baseline_removed shape: {x_baseline_removed.shape}")
+                logger.debug(f"coeffs shape: {coeffs.shape}")
 
-            return x_raw, x_drift_removed, x_baseline_removed, rr_features, coeffs
-        except Exception as e:
-            logger.warn(f"Currently processed file: {header_file}, issue:{e}", exc_info=True)
-            raise
+            #return x_raw, x_drift_removed, x_baseline_removed, rr_features, coeffs
+            except Exception as e:
+                logger.warn(f"Currently processed file: {header_file}, issue:{e}", exc_info=True)
+                raise
 
 
         return x_raw, x_drift_removed, x_baseline_removed, rr_features, coeffs
