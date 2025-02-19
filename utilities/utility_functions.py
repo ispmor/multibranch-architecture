@@ -89,13 +89,17 @@ class UtilityFunctions:
 
     #TODO create def initiate_classes_count method which will zero the classes_counts, also we need a global count
 
-    def calculate_pos_weights(self, class_counts):
-        logger.info("calculating positional weights")
-        all_counts = sum(class_counts)
-        pos_weights = [(all_counts-pos_count) / (pos_count + 1e-5) for pos_count in  class_counts]
+    def calculate_pos_weights(self, class_counts, all_signals_count):
+        logger.info(f"Calculating positional weights for class_counts: {class_counts} and all_signals_count: {all_signals_count}")
+        for key, value in class_counts.items():
+            if value == 0:
+                class_counts[key] = 1
+
+        pos_weights = [all_signals_count / pos_count for key, pos_count in  class_counts.items()]
+        neg_weights = [all_signals_count / (all_signals_count - pos_count) for key, pos_count in  class_counts.items()]
 
         logger.info(f"Result positional weights: {pos_weights}")
-        return pos_weights #torch.as_tensor(pos_weights, dtype=torch.float, device=self.device)
+        return pos_weights, neg_weights #torch.as_tensor(pos_weights, dtype=torch.float, device=self.device)
 
 
     def extract_classes(self, header_files):
@@ -141,63 +145,69 @@ class UtilityFunctions:
 
         if not os.path.isfile(training_filename):  # _{len(leads)}_training.h5'):
             logger.info(f"{training_filename} not found, creating database")
-            local_training_counts = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, leads,
+            local_training_counts, all_signals_count = self.create_hdf5_db(data_training, num_classes, header_files, recording_files, self.all_classes, leads,
                                classes_numbers=self.classes_counts, isTraining=1, selected_classes=self.all_classes, filename=training_filename, remove_baseline=remove_baseline)
-            self.add_classes_counts(local_training_counts)
             sorted_classes_numbers = dict(sorted(self.classes_counts.items(), key=lambda x: int(x[0])))
 
-            weights = self.calculate_pos_weights(sorted_classes_numbers.values())
-            np.savetxt(training_weights_filename, np.asarray(weights), delimiter=',')
+            weights, neg_weights = self.calculate_pos_weights(sorted_classes_numbers, all_signals_count)
+            np.savetxt(training_weights_filename, np.asarray(np.vstack([weights, neg_weights])), delimiter=',')
             save_headers_recordings_to_json(f"{training_filename}_header_recording_files.json", header_files, recording_files, data_training) 
 
 
         if not os.path.isfile(validation_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{validation_filename} not found, creating database")
-            local_validation_counts = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, leads,
+            local_validation_counts, _ = self.create_hdf5_db(data_validation, num_classes, header_files, recording_files, self.all_classes, leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=validation_filename, remove_baseline=remove_baseline)
             self.add_classes_counts(local_validation_counts)
             save_headers_recordings_to_json(f"{validation_filename}_header_recording_files.json", header_files, recording_files, data_validation) 
 
         if not os.path.isfile(test_filename):  # {len(leads)}_validation.h5'):
             logger.info(f"{test_filename} not found, creating database")
-            local_test_counts = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, leads,
+            local_test_counts, _ = self.create_hdf5_db(single_fold_data_test, num_classes, header_files, recording_files, self.all_classes, leads,
                                classes_numbers=self.classes_counts, isTraining=0, selected_classes=self.all_classes, filename=test_filename, remove_baseline=remove_baseline)
             
             self.add_classes_counts(local_test_counts)
             save_headers_recordings_to_json(f"{test_filename}_header_recording_files.json", header_files, recording_files, single_fold_data_test) 
 
-        if weights is None and os.path.isfile(training_filename):
-            logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
-            weights = torch.tensor(np.loadtxt(training_weights_filename, delimiter=','), device=self.device)
+        #if weights is None and os.path.isfile(training_filename):
+        #    logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
+        #    weights_total = torch.tensor(np.loadtxt(training_weights_filename, delimiter=','), device=self.device)
+        #    weights = weights_total[0]
+        #    neg_weights = weights_total[1]
+        #    self.weights = weights
+        #    self.neg_weights = neg_weights
+        #    logger.info(f"Loaded positive weights: {weights}")
+        #    logger.info(f"Loaded negative weights: {neg_weights}")
 
-        classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
-        if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
-            logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
-            with open(classes_occurences_filename, 'r') as f:
-                self.classes_counts = json.load(f)
-        elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
-            logger.info(f"Classes counts > 0, saving counts to {classes_occurences_filename} file")
-            with open(classes_occurences_filename, 'w') as f:
-                json.dump(self.classes_counts, f)
+        #classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
+        #if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
+        #    logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
+        #    with open(classes_occurences_filename, 'r') as f:
+        #        self.classes_counts = json.load(f)
+        #elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
+        #    logger.info(f"Classes counts > 0, saving counts to {classes_occurences_filename} file")
+        #    with open(classes_occurences_filename, 'w') as f:
+        #        json.dump(self.classes_counts, f)
 
-        logger.info(f"Classes counts: {self.classes_counts}")
+        #logger.info(f"Classes counts: {self.classes_counts}")
 
-        classes_to_classify = dict().fromkeys(self.all_classes)
-        index_mapping_from_normal_to_selected = dict()
-        tmp_iterator = 0
-        for c in self.classes:
-            if c in self.all_classes:
-                classes_to_classify[c] = tmp_iterator
-                index_mapping_from_normal_to_selected[classes_index[c]] = tmp_iterator
-                tmp_iterator += 1
+        #classes_to_classify = dict().fromkeys(self.all_classes)
+        #index_mapping_from_normal_to_selected = dict()
+        #tmp_iterator = 0
+        #for c in self.classes:
+        #    if c in self.all_classes:
+        #        classes_to_classify[c] = tmp_iterator
+        #        index_mapping_from_normal_to_selected[classes_index[c]] = tmp_iterator
+        #        tmp_iterator += 1
 
-        sorted_classes_counts = dict(
-            sorted([(k, self.classes_counts[k]) for k in classes_to_classify.keys()], key=lambda x: int(x[0])))
+        #sorted_classes_counts = dict(
+        #    sorted([(k, self.classes_counts[k]) for k in classes_to_classify.keys()], key=lambda x: int(x[0])))
 
-        logger.info(f"Sorted classes counts: {sorted_classes_counts}")
+        #logger.info(f"Sorted classes counts: {sorted_classes_counts}")
 
-        weights = self.calculate_pos_weights(sorted_classes_counts.values())
-        logger.info(f"Weights vecotr={weights}")
+        #weights = self.calculate_pos_weights(sorted_classes_counts.values())
+        #pos_weights = [all_signals_counts / pos_count for pos_count in  class_counts]
+        #logger.info(f"Weights vecotr={weights}")
 
 
 
@@ -411,6 +421,7 @@ class UtilityFunctions:
                                          chunks=(1, len(leads), self.window_size))
             counter = 0
             avg_processing_times = []
+            all_signals_entries = 0
             for i in num_recordings:
                 logger.debug(f"Iterating over {counter} out of {num_recordings} files")
                 if len(avg_processing_times) > 0 and len(avg_processing_times) % 500 == 0:
@@ -461,6 +472,7 @@ class UtilityFunctions:
                 if new_windows == 0:
                     logger.debug("New windows is 0! SKIPPING")
                     continue
+                all_signals_entries += new_windows
 
                 dset.resize(dset.shape[0] + new_windows, axis=0)
                 dset[-new_windows:] = recording_raw
@@ -482,15 +494,12 @@ class UtilityFunctions:
                 logger.debug(f"Classes in header: {current_labels}")
                 for c in current_labels:
                     if c in selected_classes:
-                        for i in range(new_windows):  #
-                            if c in classes_numbers and classes_numbers[c]:
-                                classes_numbers[c] += 1
-                            else:
-                                classes_numbers[c] = 1
+                        classes_numbers[c] += new_windows
+
                 logger.debug(f"Classes counts after {counter} file: {classes_numbers}")
 
         print(f'Successfully created {group} dataset {filename}')
-        return classes_numbers
+        return classes_numbers, all_signals_entries
 
 
     def run_model(self, model: BlendMLP, header, recording, include_domain):
@@ -558,11 +567,15 @@ class UtilityFunctions:
         logger.debug(f"Loading {self.training_weights_filename.format(fold)}")
         with open(self.training_weights_filename.format(fold), 'r') as f:
             reader = csv.reader(f)
-            data.append(list(reader))
-        average=np.mean(data, axis=0, dtype=float).flatten()
-        result=torch.from_numpy(average).to(self.device)
-        logger.debug(f"Loaded list of weights: {result}")
-        return result
+            for i, line in enumerate(reader):
+                data.append(list(line))
+            logger.debug(f"Loaded weights from CSV Reader: {data}")
+        weights=torch.from_numpy(np.array(data, dtype=np.float32)).to(self.device)
+        pos_weights = weights[0]
+        neg_weights = weights[1]
+
+        logger.debug(f"Loaded list of pos_weights: {pos_weights}, neg_weights: {neg_weights}")
+        return pos_weights, neg_weights
 
 
     def load_test_headers_and_recordings(self, fold, leads):

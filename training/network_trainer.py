@@ -1,8 +1,9 @@
 from re import A
 
+from challenge.test_model_local import load_weights
 from scipy.stats import alpha
 from networks.model import BlendMLP
-from utilities import batch_preprocessing
+from utilities import batch_preprocessing, challenge_metric_loss, sparsity_loss
 import numpy as np
 import torch
 import logging
@@ -38,10 +39,13 @@ class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
     training_config: TrainingConfig = None
-    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter) -> None:
+    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter, domain_weights_file) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
         self.tensorboardWriter = tensorboardWriter
+        self.domain_weights_file = domain_weights_file
+        _, self.domain_weights = load_weights(domain_weights_file)
+        self.domain_weights = torch.from_numpy(self.domain_weights)
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
@@ -57,6 +61,9 @@ class NetworkTrainer:
             forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
+            ch_metric_loss = challenge_metric_loss(forecast, y.to(self.training_config.device), self.domain_weights.to(self.training_config.device))
+            spars_loss = sparsity_loss(forecast)
+            loss = loss - ch_metric_loss + spars_loss
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
             loss.backward()

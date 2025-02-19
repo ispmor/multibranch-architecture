@@ -159,7 +159,7 @@ def main():
         logger.info(f"Beginning {fold} fold processing")
         if fold_to_process == "*":
             utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
-        weights = utilityFunctions.load_training_weights_for_fold(fold)
+        weights, neg_weights = utilityFunctions.load_training_weights_for_fold(fold)
         logger.info(f"Training FOLD: {fold}")
         training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads_dict[selected_leads_flag], fold), recursive=False,
                                         load_data=False,
@@ -183,7 +183,7 @@ def main():
 
         training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
         validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
-        networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config, tensorboardWriter=tensorboardWriter)
+        networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv")
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
