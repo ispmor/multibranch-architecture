@@ -90,6 +90,9 @@ class NetworkTrainer:
                 forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
+                ch_metric_loss = challenge_metric_loss(forecast, y.to(self.training_config.device), self.domain_weights.to(self.training_config.device))
+                spars_loss = sparsity_loss(forecast)
+                loss = loss - ch_metric_loss + spars_loss
                 epoch_loss.append(loss)
         return torch.mean(torch.stack(epoch_loss))
 
