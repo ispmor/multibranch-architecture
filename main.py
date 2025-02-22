@@ -176,7 +176,7 @@ def main():
                                     n_epochs_stop=early_stop,
                                     num_epochs=epochs,
                                     lr_rate=0.01,
-                                    criterion=nn.BCELoss(),#nn.BCEWithLogitsLoss(pos_weight=weights),
+                                    criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
                                     optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
                                     device=device
                                     )

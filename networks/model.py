@@ -415,8 +415,7 @@ class MultibranchBeats(nn.Module):
         outF = self.modelF(zeta_input)
 
         out_concat = F.relu(torch.cat((outA, outB, outC, outD, outE, outF), dim=1))
-        out_linear = self.linear(out_concat)
-        out = self.sigmoid(out_linear)
+        out = self.linear(out_concat)
         return out
 
 
