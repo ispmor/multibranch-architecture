@@ -61,8 +61,9 @@ class NetworkTrainer:
             forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
-            ch_metric_loss = challenge_metric_loss(forecast, y.to(self.training_config.device), self.domain_weights.to(self.training_config.device))
-            spars_loss = sparsity_loss(forecast)
+            forecast_preds = torch.nn.functional.sigmoid(forecast)
+            ch_metric_loss = challenge_metric_loss(forecast_preds, y.to(self.training_config.device), self.domain_weights.to(self.training_config.device))
+            spars_loss = sparsity_loss(forecast_preds)
             loss = loss - ch_metric_loss + spars_loss
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
@@ -70,6 +71,9 @@ class NetworkTrainer:
             self.training_config.optimizer.step()
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
+                logger.info(f"Training spars_loss at step {local_step} = {spars_loss}")
+                logger.info(f"Training ch_metric_loss at step {local_step} = {ch_metric_loss}")
+                logger.info(f"exemplar y and ypred  at step {local_step} : y={y[0]} and ypred={forecast_preds[0]}")
 
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
@@ -90,8 +94,9 @@ class NetworkTrainer:
                 forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
                 loss = self.training_config.criterion(forecast, y.to(self.training_config.device))
-                ch_metric_loss = challenge_metric_loss(forecast, y.to(self.training_config.device), self.domain_weights.to(self.training_config.device))
-                spars_loss = sparsity_loss(forecast)
+                forecast_preds = torch.nn.functional.sigmoid(forecast)
+                ch_metric_loss = challenge_metric_loss(forecast_preds, y.to(self.training_config.device), self.domain_weights.to(self.training_config.device))
+                spars_loss = sparsity_loss(forecast_preds)
                 loss = loss - ch_metric_loss + spars_loss
                 epoch_loss.append(loss)
         return torch.mean(torch.stack(epoch_loss))
