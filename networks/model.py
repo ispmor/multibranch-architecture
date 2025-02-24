@@ -394,6 +394,12 @@ class BlendMLP(nn.Module):
 class MultibranchBeats(nn.Module):
     def __init__(self, modelA, modelB, modelC, modelD, modelE, modelF, classes):
         super(MultibranchBeats, self).__init__()
+        self.dropoutA = nn.Dropout(0.2)
+        self.dropoutB = nn.Dropout(0.2)
+        self.dropoutC = nn.Dropout(0.2)
+        self.dropoutD = nn.Dropout(0.2)
+        self.dropoutE = nn.Dropout(0.2)
+        self.dropoutF = nn.Dropout(0.2)
         self.modelA = modelA
         self.modelB = modelB
         self.modelC = modelC
@@ -406,7 +412,12 @@ class MultibranchBeats(nn.Module):
 
     def forward(self, alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input):
         logger.debug(f"Alpha input shape: {alpha_input.shape}\nBeta input shape: {beta_input.shape}\nGamma input shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
-
+        alpha_input = self.dropoutA(alpha_input)
+        beta_input = self.dropoutB(beta_input)
+        gamma_input = self.dropoutC(gamma_input)
+        delta_input = self.dropoutD(delta_input)
+        epsilon_input = self.dropoutE(epsilon_input)
+        zeta_input = self.dropoutF(zeta_input)
         outA = self.modelA(alpha_input)
         outB = self.modelB(beta_input)
         outC = self.modelC(gamma_input)
