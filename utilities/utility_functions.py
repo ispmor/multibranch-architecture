@@ -607,7 +607,7 @@ class UtilityFunctions:
         model.load_state_dict(checkpoint['model_state_dict'])
         model.leads = checkpoint['leads']
         model.to(device)
-        logger.info(f'Restored checkpoint from {filename}.') 
+        logger.info(f'Restored checkpoint from {filename}.')
         return model
 
 
