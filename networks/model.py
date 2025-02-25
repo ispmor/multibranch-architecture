@@ -301,6 +301,9 @@ class LSTM_ECG(nn.Module):
         self.device = device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
+        self.dropoutLstmA = nn.Dropout(0.2)
+        self.dropoutFC = nn.Dropout(0.2)
+
         print(f'| LSTM_ECG')
 
         self.lstm_alpha1 = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
@@ -361,10 +364,11 @@ class LSTM_ECG(nn.Module):
                             device=self.device))  # internal state
 
             output_beta, (hn_beta, cn) = self.lstm_alpha1(alpha2_input, (h_0, c_0))
-
+            output_beta = self.dropoutLstmA(output_beta)
             out = torch.flatten(output_beta, start_dim=1)
             out = self.relu(out)  # relu
             out = self.fc(out)  # Final Output
+            out = self.dropoutFC(out)
         return out
 
 
