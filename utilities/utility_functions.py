@@ -622,7 +622,9 @@ class UtilityFunctions:
         logger.debug(f"labels: {labels}")
         logger.debug(f"Labels shape: {labels.shape}")
         logger.debug(f"Scalar outputs shape: {labels.shape}")
+        total_size = len(header_files)
         for i,header_filename in enumerate(header_files):
+            logger.info(f"Testing: {i+1}/{total_size}, {header_filename}")
             header = load_header(header_filename)
             recording = load_recording(recording_files[i])
             c[i], binary_outputs[i], scalar_outputs[i], times[i] = self.run_model(model, header, recording, include_domain=include_domain)
