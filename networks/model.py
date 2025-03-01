@@ -1,4 +1,5 @@
 
+from re import A
 import numpy as np
 import torch
 from torch import nn
@@ -407,6 +408,7 @@ class MultibranchBeats(nn.Module):
         self.classes = classes
         self.linear = nn.Linear( 6 * len(classes), len(classes))
         self.sigmoid = nn.Sigmoid()
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input):
         logger.debug(f"Alpha input shape: {alpha_input.shape}\nBeta input shape: {beta_input.shape}\nGamma input shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
@@ -419,6 +421,7 @@ class MultibranchBeats(nn.Module):
         outF = self.modelF(zeta_input)
 
         out_concat = F.relu(torch.cat((outA, outB, outC, outD, outE, outF), dim=1))
+        out_concat = self.dropout(out_concat)
         out = self.linear(out_concat)
         return out
 
