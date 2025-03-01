@@ -1,4 +1,5 @@
 
+from re import A
 import numpy as np
 import torch
 from torch import nn
@@ -301,8 +302,8 @@ class LSTM_ECG(nn.Module):
         self.device = device
         self.sigmoid = nn.Sigmoid()
         self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
-        self.dropoutLstmA = nn.Dropout(0.2)
-        self.dropoutFC = nn.Dropout(0.2)
+        self.dropoutLstmA = nn.Dropout(0.5)
+        self.dropoutFC = nn.Dropout(0.5)
 
         print(f'| LSTM_ECG')
 
@@ -398,6 +399,12 @@ class BlendMLP(nn.Module):
 class MultibranchBeats(nn.Module):
     def __init__(self, modelA, modelB, modelC, modelD, modelE, modelF, classes):
         super(MultibranchBeats, self).__init__()
+        self.dropoutA = nn.Dropout(0.5)
+        self.dropoutB = nn.Dropout(0.5)
+        self.dropoutC = nn.Dropout(0.5)
+        self.dropoutD = nn.Dropout(0.5)
+        self.dropoutE = nn.Dropout(0.5)
+        self.dropoutF = nn.Dropout(0.5)
         self.modelA = modelA
         self.modelB = modelB
         self.modelC = modelC
@@ -408,8 +415,16 @@ class MultibranchBeats(nn.Module):
         self.linear = nn.Linear( 6 * len(classes), len(classes))
         self.sigmoid = nn.Sigmoid()
 
+
     def forward(self, alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input):
         logger.debug(f"Alpha input shape: {alpha_input.shape}\nBeta input shape: {beta_input.shape}\nGamma input shape: {gamma_input.shape}\nDelta input shape: {delta_input.shape}")
+
+        outA = self.modelA(alpha_input)
+        outB = self.modelB(beta_input)
+        outC = self.modelC(gamma_input)
+        outD = self.modelD(delta_input)
+        outE = self.modelE(epsilon_input)
+        outF = self.modelF(zeta_input)
 
         outA = self.modelA(alpha_input)
         outB = self.modelB(beta_input)
