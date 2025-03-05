@@ -51,7 +51,7 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         local_step = 0
         epoch_loss = []
@@ -70,7 +70,6 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -122,6 +121,42 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
+
+        for epoch in range(self.training_config.num_epochs):
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
+            epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
+            self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
+            self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
+            logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
+            logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
+
+            last_layer_weights = torch.clone(blendModel.linear.weight.data).cpu().numpy()
+            self.log_weights_to_tensorboard(last_layer_weights, blendModel.classes, epoch)
+
+            if epoch_validation_loss < min_val_loss:
+                epochs_no_improve = 0
+                min_val_loss = epoch_validation_loss
+                logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
+                model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
+                logger.debug(f"saving model: {model_name}")
+                self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
+                best_model_name=model_name
+            else:
+                epochs_no_improve += 1
+            if epoch > 10 and epochs_no_improve >= self.training_config.n_epochs_stop:
+                logger.warn(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
+                break
+            logger.info(f"not improving since: {epochs_no_improve}")
+        return best_model_name
+
+
+    def remove_pruning_layers(self, parameters_to_prune):
+        for m, weight_name in parameters_to_prune:
+            if prune.is_pruned(m):
+                prune.remove(m, weight_name)
+
+
+    def prune_model(self, blendModel):
         parameters_to_prune=(
                 (blendModel.modelA.lstm_alpha1, 'weight_ih_l0'),
                 (blendModel.modelA.lstm_alpha1, 'weight_ih_l1'),
@@ -156,40 +191,10 @@ class NetworkTrainer:
                 (blendModel.linear, 'weight')
                 )
 
-        for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
-            epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
-            self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
-            self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
-            logger.info(f"Training loss for epoch {epoch} = {epoch_loss}")
-            logger.info(f"Validation loss for epoch {epoch} = {epoch_validation_loss}")
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.20)
 
-            last_layer_weights = torch.clone(blendModel.linear.weight.data).cpu().numpy()
-            self.log_weights_to_tensorboard(last_layer_weights, blendModel.classes, epoch)
-
-            if epoch_validation_loss < min_val_loss:
-                epochs_no_improve = 0
-                min_val_loss = epoch_validation_loss
-                logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
-                model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
-                logger.debug(f"saving model: {model_name}")
-                self.remove_pruning_layers(parameters_to_prune)
-                self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
-                best_model_name=model_name
-            else:
-                epochs_no_improve += 1
-            if epoch > 10 and epochs_no_improve >= self.training_config.n_epochs_stop:
-                logger.warn(f'Early stopping!-->epoch: {epoch}; fold: {fold}')
-                break
-            logger.info(f"not improving since: {epochs_no_improve}")
-        return best_model_name
-
-
-    def remove_pruning_layers(self, parameters_to_prune):
-        for m, weight_name in parameters_to_prune:
-            if prune.is_pruned(m):
-                prune.remove(m, weight_name)
-
+        self.remove_pruning_layers(parameters_to_prune)
+        return blendModel
 
 
     def test_network():

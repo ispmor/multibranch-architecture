@@ -172,7 +172,7 @@ def main():
 
         #model = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
         model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
-        training_config = TrainingConfig(batch_size=1500,
+        training_config = TrainingConfig(batch_size=500,
                                     n_epochs_stop=early_stop,
                                     num_epochs=epochs,
                                     lr_rate=0.01,
@@ -187,7 +187,14 @@ def main():
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
-        del model, training_data_loader, validation_data_loader
+        del model
+
+        trained_model_pre_prune = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
+        pruned_model = networkTrainer.prune_model(trained_model_pre_prune)
+        trained_model_name = networkTrainer.train(pruned_model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
+        logger.info(f"Best trained model after prune and additional training filename: {trained_model_name}")
+
+        del  pruned_model, trained_model_pre_prune, training_data_loader, validation_data_loader
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
