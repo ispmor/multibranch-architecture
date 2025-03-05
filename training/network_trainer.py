@@ -1,4 +1,4 @@
-from re import A
+from re import A, I
 
 from challenge.test_model_local import load_weights
 from scipy.stats import alpha
@@ -6,6 +6,8 @@ from networks.model import BlendMLP
 from utilities import batch_preprocessing, challenge_metric_loss, sparsity_loss
 import numpy as np
 import torch
+import torch.nn.utils.prune as prune
+
 import logging
 import time
 from torch.utils.tensorboard import SummaryWriter
@@ -49,7 +51,7 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         local_step = 0
         epoch_loss = []
@@ -68,6 +70,7 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -119,9 +122,42 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
+        parameters_to_prune=(
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelA.fc, 'weight'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelB.fc, 'weight'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelC.fc, 'weight'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelD.fc, 'weight'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelE.fc, 'weight'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelF.fc, 'weight'),
+                (blendModel.linear, 'weight')
+                )
 
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
@@ -137,6 +173,7 @@ class NetworkTrainer:
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
                 model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
                 logger.debug(f"saving model: {model_name}")
+                self.remove_pruning_layers(parameters_to_prune)
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
             else:
@@ -147,6 +184,11 @@ class NetworkTrainer:
             logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
 
+
+    def remove_pruning_layers(self, parameters_to_prune):
+        for m, weight_name in parameters_to_prune:
+            if prune.is_pruned(m):
+                prune.remove(m, weight_name)
 
 
 
