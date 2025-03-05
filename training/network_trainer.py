@@ -70,7 +70,8 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
+        for module, name in parameters_to_prune:
+            prune.random_unstructured(module=module, name=name, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
