@@ -97,8 +97,6 @@ class NetworkTrainer:
         X = range(last_layer_weights.shape[1])
         weights_sum_per_column = np.sum(last_layer_weights, axis=0)
         weights_sum_per_row = np.sum(last_layer_weights, axis=1)
-        self.tensorboardWriter.add_histogram("Weights/per_column", weights_sum_per_column)
-        self.tensorboardWriter.add_histogram("Weights/per_row", weights_sum_per_row)
 
         fig, axs = plt.subplots(3,1)
         heatmap =axs[0].imshow(last_layer_weights, cmap='plasma')
