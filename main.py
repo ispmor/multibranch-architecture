@@ -9,6 +9,7 @@ from sklearn.model_selection import KFold
 import argparse
 from multiprocessing.pool import ThreadPool
 
+import torch.nn.utils.prune as prune
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -181,15 +182,51 @@ def main():
                                     device=device
                                     )
 
-        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
-        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
+        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=500, shuffle=True, num_workers=6)
+        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=500, shuffle=True, num_workers=6)
+        networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv")
+        trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
+        logger.info(f"Best trained model filename: {trained_model_name}")
+
+        del model
+
+        model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
+        model.modelA.lstm_alpha1 = prune.random_unstructured(module=model.modelA.lstm_alpha1, name= 'weight_ih_l0', amount=0.2)
+        model.modelA.lstm_alpha1 = prune.random_unstructured(module=model.modelA.lstm_alpha1, name= 'weight_ih_l1', amount=0.2)
+        model.modelA.lstm_alpha1 = prune.random_unstructured(module=model.modelA.lstm_alpha1, name= 'weight_hh_l0', amount=0.2)
+        model.modelA.lstm_alpha1 = prune.random_unstructured(module=model.modelA.lstm_alpha1, name= 'weight_hh_l1', amount=0.2)
+        model.modelA.fc = prune.random_unstructured(module=model.modelA.fc, name='weight', amount=0.2)
+        model.modelB.lstm_alpha1 = prune.random_unstructured(module=model.modelB.lstm_alpha1, name= 'weight_ih_l0', amount=0.2)
+        model.modelB.lstm_alpha1 = prune.random_unstructured(module=model.modelB.lstm_alpha1, name= 'weight_ih_l1', amount=0.2)
+        model.modelB.lstm_alpha1 = prune.random_unstructured(module=model.modelB.lstm_alpha1, name= 'weight_hh_l0', amount=0.2)
+        model.modelB.lstm_alpha1 = prune.random_unstructured(module=model.modelB.lstm_alpha1, name= 'weight_hh_l1', amount=0.2)
+        model.modelB.fc = prune.random_unstructured(module=model.modelB.fc, name='weight', amount=0.2)
+        model.modelC.lstm_alpha1 = prune.random_unstructured(module=model.modelC.lstm_alpha1, name= 'weight_ih_l0', amount=0.2)
+        model.modelC.lstm_alpha1 = prune.random_unstructured(module=model.modelC.lstm_alpha1, name= 'weight_ih_l1', amount=0.2)
+        model.modelC.lstm_alpha1 = prune.random_unstructured(module=model.modelC.lstm_alpha1, name= 'weight_hh_l0', amount=0.2)
+        model.modelC.lstm_alpha1 = prune.random_unstructured(module=model.modelC.lstm_alpha1, name= 'weight_hh_l1', amount=0.2)
+        model.modelC.fc = prune.random_unstructured(module=model.modelC.fc, name='weight', amount=0.2)
+        model.modelD.lstm_alpha1 = prune.random_unstructured(module=model.modelD.lstm_alpha1, name= 'weight_ih_l0', amount=0.2)
+        model.modelD.lstm_alpha1 = prune.random_unstructured(module=model.modelD.lstm_alpha1, name= 'weight_ih_l1', amount=0.2)
+        model.modelD.lstm_alpha1 = prune.random_unstructured(module=model.modelD.lstm_alpha1, name= 'weight_hh_l0', amount=0.2)
+        model.modelD.lstm_alpha1 = prune.random_unstructured(module=model.modelD.lstm_alpha1, name= 'weight_hh_l1', amount=0.2)
+        model.modelD.fc = prune.random_unstructured(module=model.modelD.fc, name='weight', amount=0.2)
+        model.modelE.lstm_alpha1 = prune.random_unstructured(module=model.modelE.lstm_alpha1, name= 'weight_ih_l0', amount=0.2)
+        model.modelE.lstm_alpha1 = prune.random_unstructured(module=model.modelE.lstm_alpha1, name= 'weight_ih_l1', amount=0.2)
+        model.modelE.lstm_alpha1 = prune.random_unstructured(module=model.modelE.lstm_alpha1, name= 'weight_hh_l0', amount=0.2)
+        model.modelE.lstm_alpha1 = prune.random_unstructured(module=model.modelE.lstm_alpha1, name= 'weight_hh_l1', amount=0.2)
+        model.modelE.fc = prune.random_unstructured(module=model.modelE.fc, name='weight', amount=0.2)
+        model.modelF.lstm_alpha1 = prune.random_unstructured(module=model.modelF.lstm_alpha1, name= 'weight_ih_l0', amount=0.2)
+        model.modelF.lstm_alpha1 = prune.random_unstructured(module=model.modelF.lstm_alpha1, name= 'weight_ih_l1', amount=0.2)
+        model.modelF.lstm_alpha1 = prune.random_unstructured(module=model.modelF.lstm_alpha1, name= 'weight_hh_l0', amount=0.2)
+        model.modelF.lstm_alpha1 = prune.random_unstructured(module=model.modelF.lstm_alpha1, name= 'weight_hh_l1', amount=0.2)
+        model.modelF.fc = prune.random_unstructured(module=model.modelF.fc, name='weight', amount=0.2)
+
         networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv")
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
         del model, training_data_loader, validation_data_loader
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
 
         trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
         logger.info(f"Loaded model: {trained_model}")
