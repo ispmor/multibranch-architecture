@@ -187,7 +187,18 @@ def main():
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
-        del model, training_data_loader, validation_data_loader
+        pruned_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
+        training_config = TrainingConfig(batch_size=500,
+                                    n_epochs_stop=early_stop,
+                                    num_epochs=2,
+                                    lr_rate=0.01,
+                                    criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
+                                    optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
+                                    device=device
+                                    )
+        trained_model_name= networkTrainer.train(pruned_model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
+
+        del model, pruned_model, training_data_loader, validation_data_loader
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
