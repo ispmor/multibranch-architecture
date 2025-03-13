@@ -156,7 +156,7 @@ class NetworkTrainer:
 
         prune_percentage = 0.05
         for epoch in range(self.training_config.num_epochs):
-            if epoch % 2 == 0 and epoch > 0 and prune_percentage > 0.01:
+            if epoch % 3 == 0 and epoch > 0 and prune_percentage > 0.01:
                 prune_percentage -= 0.01
 
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune, prune_percentage=prune_percentage)
