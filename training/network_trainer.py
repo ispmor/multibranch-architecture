@@ -72,6 +72,8 @@ class NetworkTrainer:
 
         if len(parameters_to_prune) > 0:
             prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
+        else:
+            print("Not needed prune")
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -156,6 +158,7 @@ class NetworkTrainer:
                 )
         if prune_model == False:
             parameters_to_prune = ()
+            print("NOT PRUNNING")
 
         for epoch in range(self.training_config.num_epochs):
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
