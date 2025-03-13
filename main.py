@@ -196,7 +196,7 @@ def main():
                                     optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
                                     device=device
                                     )
-        trained_model_name= networkTrainer.train(pruned_model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
+        trained_model_name= networkTrainer.train(pruned_model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain, prune_model=False)
 
         del model, pruned_model, training_data_loader, validation_data_loader
         if torch.cuda.is_available():

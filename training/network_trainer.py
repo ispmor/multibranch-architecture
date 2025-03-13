@@ -70,7 +70,8 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
+        if len(parameters_to_prune) > 0:
+            prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -116,7 +117,7 @@ class NetworkTrainer:
 
 
 
-    def train(self, blendModel, alpha_config, beta_config, training_data_loader, validation_data_loader, fold, leads, include_domain):
+    def train(self, blendModel, alpha_config, beta_config, training_data_loader, validation_data_loader, fold, leads, include_domain, prune_model=True):
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
@@ -153,6 +154,8 @@ class NetworkTrainer:
                 (blendModel.modelF.fc, 'weight'),
                 (blendModel.linear, 'weight')
                 )
+        if prune_model == False:
+            parameters_to_prune = ()
 
         for epoch in range(self.training_config.num_epochs):
             epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
