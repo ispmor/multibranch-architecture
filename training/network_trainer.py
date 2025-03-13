@@ -51,7 +51,7 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=(), prune_percentage=0.05):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         local_step = 0
         epoch_loss = []
@@ -70,7 +70,7 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=prune_percentage)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -154,8 +154,12 @@ class NetworkTrainer:
                 (blendModel.linear, 'weight')
                 )
 
+        prune_percentage = 0.05
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
+            if epoch % 2 == 0 and epoch > 0 and prune_percentage > 0.01:
+                prune_percentage -= 0.01
+
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune, prune_percentage=prune_percentage)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
