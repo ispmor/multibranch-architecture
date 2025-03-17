@@ -124,12 +124,6 @@ class Block(nn.Module):
         self.fc4 = nn.Linear(units, units)
         self.backcast_linspace, self.forecast_linspace = linspace(backcast_length, forecast_length)
         self.classes = classes
-        self.forecast_dropout = nn.Dropout(0.2)
-        self.backcast_dropout = nn.Dropout(0.2)
-        self.fc1_dropout = nn.Dropout(0.2)
-        self.fc2_dropout = nn.Dropout(0.2)
-        self.fc3_dropout = nn.Dropout(0.2)
-        self.fc4_dropout = nn.Dropout(0.2)
 
         if share_thetas:
             self.theta_f_fc = self.theta_b_fc = nn.Linear(units, thetas_dim)
@@ -140,16 +134,12 @@ class Block(nn.Module):
     def forward(self, x):
         logger.debug(f"NBeats Block forward - INPUT  shape: {x.shape}")
         x = F.relu(self.fc1(x))
-        x = self.fc1_dropout(x)
         logger.debug(f"NBeats Block forward - FC1 output shape: {x.shape}")
         x = F.relu(self.fc2(x))
-        x = self.fc2_dropout(x)
         logger.debug(f"NBeats Block forward - FC2 output  shape: {x.shape}")
         x = F.relu(self.fc3(x))
-        x = self.fc3_dropout(x)
         logger.debug(f"NBeats Block forward - FC3 output  shape: {x.shape}")
         x = F.relu(self.fc4(x))
-        x = self.fc4_dropout(x)
         logger.debug(f"NBeats Block forward - FC4 output  shape: {x.shape}")
         return x
 
@@ -173,9 +163,7 @@ class GenericBlock(Block):
         x = super(GenericBlock, self).forward(x)
 
         theta_b = F.relu(self.theta_b_fc(x))
-        theta_b = self.backcast_dropout(theta_b)
         theta_f = F.relu(self.theta_f_fc(x))  # tutaj masz thetas_dim rozmiar
-        theta_f = self.forecast_dropout(theta_f)
 
         backcast = self.backcast_fc(theta_b)  # generic. 3.3.
         forecast = self.forecast_fc(theta_f)  # generic. 3.3.
@@ -288,6 +276,7 @@ class Nbeats_beta(nn.Module):
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
         logger.debug(f"{self}")
         self.dropoutNBEATS = nn.Dropout(0.2)
+        self.dropout_final = nn.Dropout(0.2)
 
 
     def forward(self, beta_input):
@@ -302,6 +291,7 @@ class Nbeats_beta(nn.Module):
         tmp = torch.squeeze(output_beta)
         out = self.relu(tmp)  # relu
         out = self.fc(out)  # Final Output
+        out = self.dropout_final(out)
         return out
 
 
