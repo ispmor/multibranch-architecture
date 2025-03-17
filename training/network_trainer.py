@@ -70,7 +70,6 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -120,119 +119,9 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
-        parameters_to_prune=(
-                (blendModel.modelA.nbeats_beta.fc_linear, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.fc1, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.fc2, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.fc3, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.fc4, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.backcast_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block0.forecast_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.fc1, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.fc2, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.fc3, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.fc4, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.backcast_fc, 'weight'),
-                (blendModel.modelA.nbeats_beta.stack.block1.forecast_fc, 'weight'),
-                (blendModel.modelA.fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.fc_linear, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.fc1, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.fc2, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.fc3, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.fc4, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.backcast_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block0.forecast_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.fc1, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.fc2, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.fc3, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.fc4, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.backcast_fc, 'weight'),
-                (blendModel.modelB.nbeats_beta.stack.block1.forecast_fc, 'weight'),
-                (blendModel.modelB.fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.fc_linear, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.fc1, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.fc2, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.fc3, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.fc4, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.backcast_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block0.forecast_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.fc1, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.fc2, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.fc3, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.fc4, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.backcast_fc, 'weight'),
-                (blendModel.modelC.nbeats_beta.stack.block1.forecast_fc, 'weight'),
-                (blendModel.modelC.fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.fc_linear, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.fc1, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.fc2, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.fc3, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.fc4, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.backcast_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block0.forecast_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.fc1, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.fc2, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.fc3, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.fc4, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.backcast_fc, 'weight'),
-                (blendModel.modelD.nbeats_beta.stack.block1.forecast_fc, 'weight'),
-                (blendModel.modelD.fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.fc_linear, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.fc1, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.fc2, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.fc3, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.fc4, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.backcast_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block0.forecast_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.fc1, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.fc2, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.fc3, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.fc4, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.backcast_fc, 'weight'),
-                (blendModel.modelE.nbeats_beta.stack.block1.forecast_fc, 'weight'),
-                (blendModel.modelE.fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.fc_linear, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.fc1, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.fc2, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.fc3, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.fc4, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.backcast_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block0.forecast_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.fc1, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.fc2, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.fc3, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.fc4, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.backcast_fc, 'weight'),
-                (blendModel.modelF.nbeats_beta.stack.block1.forecast_fc, 'weight'),
-                (blendModel.modelF.fc, 'weight'),
-                )
 
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=())
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
@@ -248,7 +137,6 @@ class NetworkTrainer:
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
                 model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
                 logger.debug(f"saving model: {model_name}")
-                self.remove_pruning_layers(parameters_to_prune)
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
             else:
