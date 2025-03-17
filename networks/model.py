@@ -55,8 +55,7 @@ class NBeatsNet(nn.Module):
 
         print(f'| N-Beats, device={self.device}')
 
-        for stack_id in range(len(self.stack_types)):
-            self.stacks.append(self.create_stack(stack_id))
+        self.stack = self.create_stack(0)
         self.parameters = nn.ParameterList(self.parameters)
 
     def create_stack(self, stack_id):
@@ -73,7 +72,8 @@ class NBeatsNet(nn.Module):
                 self.parameters.extend(block.parameters())
             print(f'     | -- {block}')
             blocks.append(block)
-        return blocks
+            blocks = nn.ModuleList(blocks)
+        return Stack(blocks[0], blocks[1])
 
     @staticmethod
     def select_block(block_type):
@@ -81,14 +81,27 @@ class NBeatsNet(nn.Module):
 
     def forward(self, backcast):
         forecast = torch.zeros(size=backcast.shape, device=self.device)
-        for stack_id in range(len(self.stacks)):
-            for block_id in range(len(self.stacks[stack_id])):
-                b, f = self.stacks[stack_id][block_id](backcast)
-                backcast = backcast - b
-                forecast = forecast + f
+
+        b, f = self.stack.block0(backcast)
+        backcast = backcast - b
+        forecast = forecast + f
+
+        b, f = self.stack.block1(backcast)
+        backcast = backcast - b
+        forecast = forecast + f
+
+        #for block_id in range(len(self.stack)):
+        #    b, f = self.stack[block_id](backcast)
+        #    backcast = backcast - b
+        #    forecast = forecast + f
 
         return backcast, forecast
 
+class Stack(nn.Module):
+    def __init__(self, block0, block1):
+        super(Stack, self).__init__()
+        self.block0=block0
+        self.block1=block1
 
 def linspace(backcast_length, forecast_length):
     lin_space = np.linspace(-backcast_length, forecast_length, backcast_length + forecast_length)
@@ -111,6 +124,12 @@ class Block(nn.Module):
         self.fc4 = nn.Linear(units, units)
         self.backcast_linspace, self.forecast_linspace = linspace(backcast_length, forecast_length)
         self.classes = classes
+        self.forecast_dropout = nn.Dropout(0.2)
+        self.backcast_dropout = nn.Dropout(0.2)
+        self.fc1_dropout = nn.Dropout(0.2)
+        self.fc2_dropout = nn.Dropout(0.2)
+        self.fc3_dropout = nn.Dropout(0.2)
+        self.fc4_dropout = nn.Dropout(0.2)
 
         if share_thetas:
             self.theta_f_fc = self.theta_b_fc = nn.Linear(units, thetas_dim)
@@ -121,12 +140,16 @@ class Block(nn.Module):
     def forward(self, x):
         logger.debug(f"NBeats Block forward - INPUT  shape: {x.shape}")
         x = F.relu(self.fc1(x))
+        x = self.fc1_dropout(x)
         logger.debug(f"NBeats Block forward - FC1 output shape: {x.shape}")
         x = F.relu(self.fc2(x))
+        x = self.fc2_dropout(x)
         logger.debug(f"NBeats Block forward - FC2 output  shape: {x.shape}")
         x = F.relu(self.fc3(x))
+        x = self.fc3_dropout(x)
         logger.debug(f"NBeats Block forward - FC3 output  shape: {x.shape}")
         x = F.relu(self.fc4(x))
+        x = self.fc4_dropout(x)
         logger.debug(f"NBeats Block forward - FC4 output  shape: {x.shape}")
         return x
 
@@ -150,7 +173,9 @@ class GenericBlock(Block):
         x = super(GenericBlock, self).forward(x)
 
         theta_b = F.relu(self.theta_b_fc(x))
+        theta_b = self.backcast_dropout(theta_b)
         theta_f = F.relu(self.theta_f_fc(x))  # tutaj masz thetas_dim rozmiar
+        theta_f = self.forecast_dropout(theta_f)
 
         backcast = self.backcast_fc(theta_b)  # generic. 3.3.
         forecast = self.forecast_fc(theta_f)  # generic. 3.3.
@@ -262,14 +287,18 @@ class Nbeats_beta(nn.Module):
         self.fc = nn.Linear( input_features_size_b * self.input_size,
                             num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
         logger.debug(f"{self}")
+        self.dropoutNBEATS = nn.Dropout(0.2)
 
 
     def forward(self, beta_input):
-        logger.debug(f"NBeats_beta INPUT shape: {beta_input.shape}")
+        #logger.debug(f"NBeats_beta INPUT shape: {beta_input.shape}")
         beta_flattened = torch.flatten(beta_input, start_dim=1)
-        logger.debug(f"NBeats_beta INPUT FLATTENED shape: {beta_flattened.shape}")
+        #logger.debug(f"NBeats_beta INPUT FLATTENED shape: {beta_flattened.shape}")
+        logger.debug(beta_flattened.shape)
         _, output_beta = self.nbeats_beta(beta_flattened)  # lstm with input, hidden, and internal state
         logger.debug(f"Nbeats_beta OUTPUT shape: {output_beta.shape}")
+        nbeats_dropout = self.dropoutNBEATS(output_beta)
+        logger.debug(f"Nbeats_dropout  OUTPUT shape: {nbeats_dropout.shape}")
         tmp = torch.squeeze(output_beta)
         out = self.relu(tmp)  # relu
         out = self.fc(out)  # Final Output
