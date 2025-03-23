@@ -546,6 +546,13 @@ class UtilityFunctions:
         else:
             #alpha1_input, alpha2_input, beta_input, rr, _= batch_preprocessing(batch, include_domain)
             alpha_input, beta_input, gamma_input, delta_input, epsilon_input, zeta_input, _= batch_preprocessing(batch, include_domain)
+            if alpha_input.shape[0] > 10:
+                alpha_input = alpha_input[::2, :, :]
+                beta_input = beta_input[::2, :, :]
+                gamma_input = gamma_input[::2, :, :]
+                delta_input = delta_input[::2, :, :]
+                epsilon_input = epsilon_input[::2, :, :]
+                zeta_input = zeta_input[::2, :, :]
 
             with torch.no_grad():
                 start = time.time()
