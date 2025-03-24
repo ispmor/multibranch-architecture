@@ -1,10 +1,13 @@
-from re import A
+from re import A, I
 
+from challenge.test_model_local import load_weights
 from scipy.stats import alpha
 from networks.model import BlendMLP
-from utilities import batch_preprocessing
+from utilities import batch_preprocessing, challenge_metric_loss, sparsity_loss
 import numpy as np
 import torch
+import torch.nn.utils.prune as prune
+
 import logging
 import time
 from torch.utils.tensorboard import SummaryWriter
@@ -40,14 +43,17 @@ class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
     training_config: TrainingConfig = None
-    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter) -> None:
+    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter, domain_weights_file) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
         self.tensorboardWriter = tensorboardWriter
+        self.domain_weights_file = domain_weights_file
+        _, self.domain_weights = load_weights(domain_weights_file)
+        self.domain_weights = torch.from_numpy(self.domain_weights)
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True, lambda_reg=0.01):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         logger.info(f"Regularisation selected: {self.training_config.regularisation}")
         local_step = 0
@@ -77,6 +83,7 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -103,8 +110,6 @@ class NetworkTrainer:
         X = range(last_layer_weights.shape[1])
         weights_sum_per_column = np.sum(last_layer_weights, axis=0)
         weights_sum_per_row = np.sum(last_layer_weights, axis=1)
-        self.tensorboardWriter.add_histogram("Weights/per_column", weights_sum_per_column)
-        self.tensorboardWriter.add_histogram("Weights/per_row", weights_sum_per_row)
 
         fig, axs = plt.subplots(3,1)
         heatmap =axs[0].imshow(last_layer_weights, cmap='plasma')
@@ -128,9 +133,42 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
+        parameters_to_prune=(
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelA.fc, 'weight'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelB.fc, 'weight'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelC.fc, 'weight'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelD.fc, 'weight'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelE.fc, 'weight'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelF.fc, 'weight'),
+                (blendModel.linear, 'weight')
+                )
 
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
@@ -146,6 +184,7 @@ class NetworkTrainer:
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
                 model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
                 logger.debug(f"saving model: {model_name}")
+                self.remove_pruning_layers(parameters_to_prune)
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
             else:
@@ -156,6 +195,11 @@ class NetworkTrainer:
             logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
 
+
+    def remove_pruning_layers(self, parameters_to_prune):
+        for m, weight_name in parameters_to_prune:
+            if prune.is_pruned(m):
+                prune.remove(m, weight_name)
 
 
 

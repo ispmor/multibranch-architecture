@@ -83,32 +83,34 @@ def get_heart_axis(leadI_QRS, leadaVF_QRS):
 
 
 
-def get_QRS_from_lead(signal, info, with_nans=False):
-    num_peaks = len(info['ECG_R_Peaks'])
+def get_QRS_from_lead(signal, info, window,  with_nans=True):
+    r_peaks = get_window_only(info['ECG_R_Peaks'], window)
+    q_peaks = get_window_only(info['ECG_Q_Peaks'], window)
+    s_peaks = get_window_only(info['ECG_S_Peaks'], window)
+
+    num_peaks = min([len(r_peaks), len(q_peaks), len(s_peaks)])
     result = []
     for i in range(num_peaks):
         Q = np.nan
-        if i < len(info['ECG_Q_Peaks']):
-            Q = info['ECG_Q_Peaks'][i]
+        if i < len(q_peaks):
+            Q = q_peaks[i]
         R = np.nan
-        if i < len(info['ECG_R_Peaks']):
-            R = info['ECG_R_Peaks'][i]
+        if i < len(r_peaks):
+            R = r_peaks[i]
         S = np.nan
-        if i < len(info['ECG_S_Peaks']):
-            S = info['ECG_S_Peaks'][i]
+        if i < len(s_peaks):
+            S = s_peaks[i]
         QRS_ts= [Q, R, S]
         if with_nans:
-            q_v=0
-            r_v=0
-            s_v=0
+            ret = [0, 0, 0]
             if not np.isnan(Q):
-                q_v = signal[Q]
+                ret[0] = signal[Q]
             if not np.isnan(R):
-                r_v = signal[R]
+                ret[1] = signal[R]
             if not np.isnan(S):
-                s_v = signal[R]
+                ret[2] = signal[R]
 
-            result.append([q_v, r_v, s_v])
+            result.append(ret)
         else:
             if np.isnan(QRS_ts).any():
                 continue
@@ -118,14 +120,30 @@ def get_QRS_from_lead(signal, info, with_nans=False):
                 continue
             else:
                 result.append(QRS)
+    logger.debug(result)
+    return result
+
+
+
+def get_window_only(array, window):
+    result = []
+    for elem in array:
+        if np.isnan(elem):
+            result.append(elem)
+        if window[0] <= elem <= window[1]:
+            result.append(elem)
+        if elem > window[1]:
+            break
 
     return result
 
 
 #Check if there are missing QRS complexes, if so we diagnose atrioventricular block
-def has_missing_qrs(signals, info):
-    R_peaks = info['ECG_R_Peaks']
+def has_missing_qrs(info, window):
+    R_peaks = get_window_only(info['ECG_R_Peaks'], window)
     distances = np.diff(R_peaks)
+    if len(distances) == 0:
+        return -1
     quantile90=np.quantile(distances,0.9)
     quantile10=np.quantile(distances,0.1)
     outliers_removed=[d for d in distances if (d>quantile10 and d<quantile90)]
@@ -136,34 +154,40 @@ def has_missing_qrs(signals, info):
     else:
         return -1
 
-def get_R_distances(info):
-    R_peaks = info['ECG_R_Peaks']
+def get_R_distances(info, window):
+    R_peaks = get_window_only(info['ECG_R_Peaks'], window)
+    if len(R_peaks) == 0:
+        return pad_array([])
     distances = np.diff(R_peaks)
     result = np.insert(distances, 0, R_peaks[0], axis=0)
+    pad_array(result)
     return result
 
-def has_missing_p(signals, info):
-    num_of_p = np.count_nonzero(~np.isnan(info['ECG_P_Peaks']))
-    num_of_beats = len(info['ECG_R_Peaks'])
+def has_missing_p(info, window):
+    num_of_p = np.count_nonzero(~np.isnan(get_window_only(info['ECG_P_Peaks'], window)))
+    num_of_beats = len(get_window_only(info['ECG_R_Peaks'], window))
     return num_of_p < (num_of_beats - 1)
 
 
-def get_QRS_duration(signals, info, freq=500, with_nans=False):
+def get_QRS_duration(signals, info, window, freq=500, with_nans=True):
+    r_peaks = get_window_only(info['ECG_R_Peaks'], window)
+    q_peaks = get_window_only(info['ECG_Q_Peaks'], window)
+    s_peaks = get_window_only(info['ECG_S_Peaks'], window)
     if with_nans:
-        num_peaks=len(info['ECG_R_Peaks'])
+        num_peaks=len(r_peaks)
     else:
-        num_peaks = min([len(info['ECG_R_Peaks']), len(info['ECG_Q_Peaks']), len(info['ECG_S_Peaks'])])
+        num_peaks = min([len(r_peaks), len(q_peaks), len(s_peaks)])
     result = []
     for i in range(num_peaks):
         Q = np.nan
-        if i < len(info['ECG_Q_Peaks']):
-            Q = info['ECG_Q_Peaks'][i]
+        if i < len(q_peaks):
+            Q = q_peaks[i]
         R = np.nan
-        if i < len(info['ECG_R_Peaks']):
-            R = info['ECG_R_Peaks'][i]
+        if i < len(r_peaks):
+            R = r_peaks[i]
         S = np.nan
-        if i < len(info['ECG_S_Peaks']):
-            S = info['ECG_S_Peaks'][i]
+        if i < len(s_peaks):
+            S = s_peaks[i]
         if any(np.isnan([Q,R,S])) and not with_nans:
             continue
         if any(np.isnan([Q,R,S])) and with_nans:
@@ -171,10 +195,12 @@ def get_QRS_duration(signals, info, freq=500, with_nans=False):
         else:
             result.append((S-Q)/freq)
 
-    return result
+    return pad_array(result)
 
-def get_S_duration(signals, info, freq=500, with_nans=False):
-    num_peaks = len(info['ECG_R_Peaks'])
+def get_S_duration(signals, info, window, freq=500, with_nans=True):
+    r_peaks = get_window_only(info['ECG_R_Peaks'], window)
+    s_peaks = get_window_only(info['ECG_S_Peaks'], window)
+    num_peaks = len(r_peaks)
     result = []
     for i in range(num_peaks):
         s = info['ECG_S_Peaks'][i]
@@ -185,17 +211,22 @@ def get_S_duration(signals, info, freq=500, with_nans=False):
             result.append(0)
         else:
             result.append((s-r)/freq)
-    return result
+
+    return pad_array(result)
 
 
-def get_R_duration(signals, info, freq=500, with_nans=False):
-    num_peaks = len(info['ECG_R_Peaks'])
+def get_R_duration(signals, info, window, freq=500, with_nans=True):
+    r_peaks = get_window_only(info['ECG_R_Peaks'], window)
+    r_ons = get_window_only(info['ECG_R_Onsets'], window)
+    r_offs = get_window_only(info['ECG_R_Offsets'], window)
+    s_peaks = get_window_only(info['ECG_S_Peaks'], window)
+    num_peaks = min([len(r_peaks),len(r_ons),len(r_offs), len(s_peaks)])
     result = []
     for i in range(num_peaks):
-        R = info['ECG_R_Peaks'][i]
-        R_on = info['ECG_R_Onsets'][i]
-        R_off = info['ECG_R_Offsets'][i]
-        S = info['ECG_S_Peaks'][i]
+        R = r_peaks[i]
+        R_on = r_ons[i]
+        R_off = r_offs[i]
+        S = s_peaks[i]
         if any(np.isnan([R,R_on, R_off, S])) and not with_nans:
             continue
         if any(np.isnan([R,R_on, R_off, S])) and with_nans:
@@ -206,94 +237,97 @@ def get_R_duration(signals, info, freq=500, with_nans=False):
             else:
                 result.append((R_off - R_on)/freq)
 
-    return result
+    return pad_array(result)
 
-def sokolov_lyons_index(V1_info, V1_signal, V5_info, V5_signal):
+def sokolov_lyons_index(V1_info, V1_signal, V5_info, V5_signal, window):
     if "ECG_S_Peaks" in V1_info and "ECG_R_Peaks" in V5_info:
-        V1_QRS = get_QRS_from_lead(V1_signal, V1_info, with_nans=True)
-        V5_QRS = get_QRS_from_lead(V5_signal, V5_info, with_nans=True)
+        V1_QRS = get_QRS_from_lead(V1_signal, V1_info, window, with_nans=True)
+        V5_QRS = get_QRS_from_lead(V5_signal, V5_info, window,  with_nans=True)
         default_length = len(V1_QRS)
         if len(V5_QRS) < default_length:
             default_length=len(V5_QRS)
-        return [abs(V1_QRS[i][2]) + abs(V5_QRS[i][1]) for i in range(default_length)]
+        return pad_array([abs(V1_QRS[i][2]) + abs(V5_QRS[i][1]) for i in range(default_length)])
     else:
         default_length = len(V5_info['ECG_R_Peaks'])
         if len(V1_info['ECG_R_Peaks']) < default_length:
             default_length=len(V1_info['ECG_R_Peaks'])
-        return np.zeros(default_length)
+        return pad_array(np.zeros(default_length))
 
-def romhilt_index(V2_info, V2_signal, V5_info, V5_signal):
+def romhilt_index(V2_info, V2_signal, V5_info, V5_signal, window):
     if "ECG_S_Peaks" in V2_info and "ECG_R_Peaks" in V5_info:
-        V2_QRS = get_QRS_from_lead(V2_signal, V2_info, with_nans=True)
-        V5_QRS = get_QRS_from_lead(V5_signal, V5_info, with_nans=True)
+        V2_QRS = get_QRS_from_lead(V2_signal, V2_info, window, with_nans=True)
+        V5_QRS = get_QRS_from_lead(V5_signal, V5_info, window, with_nans=True)
         default_length = len(V2_QRS)
         if len(V5_QRS) < default_length:
             default_length=len(V5_QRS)
-        return [abs(V2_QRS[i][2]) + abs(V5_QRS[i][1]) for i in range(default_length)]
+        return pad_array([abs(V2_QRS[i][2]) + abs(V5_QRS[i][1]) for i in range(default_length)])
     else:
         default_length = len(V5_info['ECG_R_Peaks'])
         if len(V2_info['ECG_R_Peaks']) < default_length:
             default_length=len(V2_info['ECG_R_Peaks'])
-        return np.zeros(default_length)
+        return pad_array(np.zeros(default_length))
 
 
 
-def cornells_index(V3_info, V3_signal, aVL_info, aVL_signal):
+def cornells_index(V3_info, V3_signal, aVL_info, aVL_signal, window):
     if "ECG_S_Peaks" in V3_info and "ECG_R_Peaks" in aVL_info:
-        V3_QRS = get_QRS_from_lead(V3_signal, V3_info, with_nans=True)
-        aVL_QRS = get_QRS_from_lead(aVL_signal, aVL_info, with_nans=True)
+        V3_QRS = get_QRS_from_lead(V3_signal, V3_info, window, with_nans=True)
+        aVL_QRS = get_QRS_from_lead(aVL_signal, aVL_info, window, with_nans=True)
         default_length = len(V3_QRS)
         if len(aVL_QRS) < default_length:
             default_length=len(aVL_QRS)
-        return [abs(V3_QRS[i][2]) + abs(aVL_QRS[i][1]) for i in range(default_length)]
+        return pad_array([abs(V3_QRS[i][2]) + abs(aVL_QRS[i][1]) for i in range(default_length)])
     else:
         default_length = len(aVL_info['ECG_R_Peaks'])
         if len(V3_info['ECG_R_Peaks']) < default_length:
             default_length=len(V3_info['ECG_R_Peaks'])
-        return np.zeros(default_length)
+        return pad_array(np.zeros(default_length))
 
-def cornells_product(V3_info, V3_signal, aVL_info, aVL_signal):
-    voltages=cornells_index(V3_info, V3_signal, aVL_info, aVL_signal)
-    durations=get_QRS_duration(aVL_signal, aVL_info, with_nans=True)
+def cornells_product(V3_info, V3_signal, aVL_info, aVL_signal, window):
+    voltages=cornells_index(V3_info, V3_signal, aVL_info, aVL_signal, window)
+    durations=get_QRS_duration(aVL_signal, aVL_info,window, with_nans=True)
     default_length = len(voltages)
     if len(durations) < default_length:
         default_length=len(durations)
     product = [voltages[i] * durations[i] for i in range(default_length)]
-    return product
+    return pad_array(product)
 
 
 
-def lewis_index(III_info, III_signal, I_info, I_signal):
+def lewis_index(III_info, III_signal, I_info, I_signal, window):
     if "ECG_S_Peaks" in III_info and "ECG_R_Peaks" in I_info:
-        III_QRS = get_QRS_from_lead(III_signal, III_info, with_nans=True)
-        I_QRS = get_QRS_from_lead(I_signal, I_info, with_nans=True)
+        III_QRS = get_QRS_from_lead(III_signal, III_info, window, with_nans=True)
+        I_QRS = get_QRS_from_lead(I_signal, I_info, window, with_nans=True)
         default_length = len(III_QRS)
         if len(I_QRS) < default_length:
             default_length=len(I_QRS)
-        return [(III_QRS[i][2] - I_QRS[i][2]) + (I_QRS[i][1]-III_QRS[i][1]) for i in range(default_length)]
+        return pad_array([(III_QRS[i][2] - I_QRS[i][2]) + (I_QRS[i][1]-III_QRS[i][1]) for i in range(default_length)])
     else:
         default_length = len(I_info['ECG_R_Peaks'])
         if len(III_info['ECG_R_Peaks']) < default_length:
             default_length=len(III_info['ECG_R_Peaks'])
-        return np.zeros(default_length)
+        return pad_array(np.zeros(default_length))
 
-def get_max_param_from_lead(signal, info, param):
-    qrs = get_QRS_from_lead(signal, info, with_nans=True)
+def get_max_param_from_lead(signal, info, param, window):
+    qrs = get_QRS_from_lead(signal, info, window, with_nans=True)
+
+    if len(qrs) == 0:
+        return -1000000000
     if param == "q":
-        return abs(max(qrs[:][0], key=abs))
+        return abs(max([elem[0] for elem in qrs], key=abs))
     if param == "r":
-        return abs(max(qrs[:][1], key=abs))
+        return abs(max([elem[1] for elem in qrs], key=abs))
     if param == "s":
-        return abs(max(qrs[:][2], key=abs))
+        return abs(max([elem[2] for elem in qrs], key=abs))
 
 
 
-def mcphie_index(signals, infos):
+def mcphie_index(signals, infos, window):
     max_r = -1000000000
     max_s = -1000000000
     for signal, info in zip(signals, infos):
-        tmp_r = get_max_param_from_lead(signal, info, "r")
-        tmp_s = get_max_param_from_lead(signal, info, "s")
+        tmp_r = get_max_param_from_lead(signal, info, "r", window)
+        tmp_s = get_max_param_from_lead(signal, info, "s", window)
         if tmp_r > max_r:
             max_r = tmp_r
         if tmp_s > max_s:
@@ -333,15 +367,15 @@ def get_0_crossings(biorcD, beg_qrs, end_qrs, threshold=15, show=False, **kwargs
             axis[i].bar(x, beat)
             axis[i].bar(x, np.zeros(len(x)), linestyle='dashed')
 
-    return crossing_0
+    return pad_array(crossing_0)
 
 
 
 
-def analyse_notched_signal(signal, info, recording, peaks, threshold=1.5,  **kwargs):
+def analyse_notched_signal(signal, info, recording, peaks, window, threshold=1.5,  **kwargs):
     #list_of_qrs = get_QRS_from_lead(signal, info) #get_qrs_beginning_and_end(signal['ECG_Raw'], **kwargs)
+    peaks = get_window_only(peaks, window)
     N = len(recording)
-    window = None
 
     list_of_qrs = []
     window = 150
@@ -356,7 +390,7 @@ def analyse_notched_signal(signal, info, recording, peaks, threshold=1.5,  **kwa
    # list_of_qrs = [[info[beginning_key][i], info[beginning_key][i]] for i in len(info['ECG_R_Peaks'])]
     logger.debug(f"List of qrs for zero crossings: {list_of_qrs}")
     if len(list_of_qrs) ==0:
-        return -1
+        return pad_array(list_of_qrs)
 
     list_of_qrs = np.array(list_of_qrs)
     logger.debug(f"Shape of qrs for zero crossings: {list_of_qrs.shape}")
@@ -368,7 +402,7 @@ def analyse_notched_signal(signal, info, recording, peaks, threshold=1.5,  **kwa
     if len(crossing_0) > 0:
         return crossing_0
     else:
-        return -1
+        return pad(crossing_0)
 
 
 
@@ -387,7 +421,16 @@ def check_for_lead(lead_name, leads_idxs, analysed_results) -> bool:
     return lead_name in leads_idxs and analysed_results[lead_name]['info'] is not None
 
 
-def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks=None, label=None,  sampling_rate=500):
+def pad_array(array, mhb=25):
+    if len(array)>mhb:
+        return array[:mhb]
+
+    return np.pad(array, (0, mhb - len(array)), 'constant', constant_values=(0, 0))
+
+
+def analyse_recording(rec, signals, infos, rates, leads_idxs,window=None, pantompkins_peaks=None, label=None,  sampling_rate=500):
+    #assuming max bpm = 500 it gives us max 25 heart beats within 3s window
+    mhb = 25
     logger.debug("Entering analysed_results")
     analysed_results = {}
     precordial_leads=[]
@@ -401,17 +444,19 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks
                 'bpm': 0,
                 'missing_qrs': -1,
                 'missing_p': -1,
-                'qrs_duration': 0,
-                's_duration': 0,
-                'notched': 0,
-                'r_distances': 0,
-                'romhilt':0,
-                'conrell':0,
-                'lewis':0,
-                'cornell-product':0,
+                'qrs_duration': pad_array([]),
+                's_duration': pad_array([]),
+                'notched': pad_array([]),
+                'r_distances': pad_array([]),
+                'r_distances_max':-1,
+                'r_distances_min':-1,
+                'romhilt': pad_array([]),
+                'conrell':pad_array([]),
+                'lewis':pad_array([]),
+                'cornell-product':pad_array([]),
                 'mcphie':0,
-                'sokolov-lyon':0,
-                'heart_axis':0,
+                'sokolov-lyon':pad_array([]),
+                'heart_axis':pad_array([]),
                 'rhythm_origin_vertical':0,
                 'rhythm_origin_horizontal':0,
             }
@@ -424,13 +469,20 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks
         bpm = -1
         if lead_name in rates:
             bpm = cleanse_data_mean(rates[lead_name])
-        missing_qrs = has_missing_qrs(signal, info)
-        missing_p = has_missing_p(signal, info)
+        missing_qrs = has_missing_qrs(info, window)
+        missing_p = has_missing_p( info, window)
 
-        qrs_duration = get_QRS_duration(signal, info, with_nans=True)
-        s_duration = get_S_duration(signal, info, with_nans=True)
-        notched = analyse_notched_signal(signal,info, rec[idx], peaks=pantompkins_peaks)
-        r_distances = get_R_distances(info).tolist()
+        qrs_duration = get_QRS_duration(signal, info, window, with_nans=True)
+        s_duration = get_S_duration(signal, info, window, with_nans=True)
+        notched = analyse_notched_signal(signal,info, rec[idx], pantompkins_peaks, window)
+
+        r_distances = pad_array(get_R_distances(info, window), mhb).tolist()
+        r_dist_on_zero =[ dist for dist in r_distances if dist != 0]
+        r_dist_min = -1
+        r_dist_max = -1
+        if len(r_dist_on_zero) > 0:
+            r_dist_min = min(r_dist_on_zero)
+            r_dist_max = max(r_dist_on_zero)
 
         analysed_results[lead_name]={
             'signal': rec[idx],
@@ -442,6 +494,8 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks
             's_duration':s_duration,
             'notched': notched,
             'r_distances': r_distances,
+            'r_distances_max': r_dist_max,
+            'r_distances_min': r_dist_min,
         }
 
     #CrossLead indicators
@@ -454,63 +508,67 @@ def analyse_recording(rec, signals, infos, rates, leads_idxs,  pantompkins_peaks
         if check_for_lead('aVF',leads_idxs,analysed_results):
             if 'II' not in leads_idxs:
                 rhythm_origin = get_rhythm_origin(analysed_results['I']['signal'], analysed_results['I']['info'], analysed_results['aVF']['signal'], analysed_results['aVF']['info'])
-            heart_axis = get_heart_axis(get_QRS_from_lead(analysed_results['I']['signal'], analysed_results['I']['info'], with_nans=True), get_QRS_from_lead(analysed_results['aVF']['signal'], analysed_results['aVF']['info'], with_nans=True))
+            heart_axis = pad_array(get_heart_axis(get_QRS_from_lead(analysed_results['I']['signal'], analysed_results['I']['info'], window, with_nans=True), get_QRS_from_lead(analysed_results['aVF']['signal'], analysed_results['aVF']['info'], window, with_nans=True)))
 
 
 
     #Lewis Index
     if check_for_lead('I', leads_idxs, analysed_results) and check_for_lead('III', leads_idxs, analysed_results):
-        analysed_results['lewis']=lewis_index(analysed_results['III']['info'], analysed_results['III']['signal'], analysed_results['I']['info'], analysed_results['I']['signal'])
+        analysed_results['lewis']=lewis_index(analysed_results['III']['info'], analysed_results['III']['signal'], analysed_results['I']['info'], analysed_results['I']['signal'], window)
     else:
-        analysed_results['lewis']=0
+        analysed_results['lewis']=pad_array([])
 
 
     #McPhie
     precordial_signals=[analysed_results[l]['signal'] for l in precordial_leads]
     precordial_infos=[analysed_results[l]['info'] for l in precordial_leads]
     if len(precordial_leads) > 0:
-        analysed_results['mcphie']=mcphie_index(precordial_signals, precordial_infos)
+        analysed_results['mcphie']=mcphie_index(precordial_signals, precordial_infos, window)
     else:
         analysed_results['mcphie']=0
 
     #Sokolov-Lyon
     if check_for_lead('V1', leads_idxs, analysed_results) and check_for_lead('V5', leads_idxs, analysed_results):
-        analysed_results['sokolov-lyon']=sokolov_lyons_index(analysed_results['V1']['info'], analysed_results['V1']['signal'], analysed_results['V5']['info'], analysed_results['V5']['signal'])
+        analysed_results['sokolov-lyon']=sokolov_lyons_index(analysed_results['V1']['info'], analysed_results['V1']['signal'], analysed_results['V5']['info'], analysed_results['V5']['signal'], window)
     else:
-        analysed_results['sokolov-lyon']=0
+        analysed_results['sokolov-lyon']=pad_array([])
 
     #Cornell
     if check_for_lead('V3', leads_idxs, analysed_results) and check_for_lead('aVL', leads_idxs, analysed_results):
-        analysed_results['cornell']=cornells_index(analysed_results['V3']['info'], analysed_results['V3']['signal'], analysed_results['aVL']['info'], analysed_results['aVL']['signal'])
-        analysed_results['cornell-product']=cornells_product(analysed_results['V3']['info'], analysed_results['V3']['signal'], analysed_results['aVL']['info'], analysed_results['aVL']['signal'])
+        analysed_results['cornell']=cornells_index(analysed_results['V3']['info'], analysed_results['V3']['signal'], analysed_results['aVL']['info'], analysed_results['aVL']['signal'], window)
+        analysed_results['cornell-product']=cornells_product(analysed_results['V3']['info'], analysed_results['V3']['signal'], analysed_results['aVL']['info'], analysed_results['aVL']['signal'], window)
     else:
-        analysed_results['cornell']=0
-        analysed_results['cornell-product']=0
+        analysed_results['cornell']=pad_array([])
+        analysed_results['cornell-product']=pad_array([])
 
     #Romhilt
     if check_for_lead('V2', leads_idxs, analysed_results) and check_for_lead('V5', leads_idxs, analysed_results):
-        analysed_results['romhilt']=sokolov_lyons_index(analysed_results['V2']['info'], analysed_results['V2']['signal'], analysed_results['V5']['info'], analysed_results['V5']['signal'])
+        analysed_results['romhilt']=sokolov_lyons_index(analysed_results['V2']['info'], analysed_results['V2']['signal'], analysed_results['V5']['info'], analysed_results['V5']['signal'], window)
     else:
-        analysed_results['romhilt']=0
+        analysed_results['romhilt']=pad_array([])
 
 
-    if heart_axis:
+    if heart_axis is not None:
         analysed_results['heart_axis']=heart_axis
+    else:
+        analysed_results['heart_axis']=pad_array([])
 
     if rhythm_origin:
         analysed_results['rhythm_origin_vertical']=rhythm_origin[0]
         analysed_results['rhythm_origin_horizontal']=rhythm_origin[1]
+    else:
+        analysed_results['rhythm_origin_vertical']=0
+        analysed_results['rhythm_origin_horizontal']=0
+
 
     analysed_results['label'] = label
 
     for lead_name, idx in leads_idxs.items():
         analysed_results[lead_name].pop('signal', None)
-        analysed_results[lead_name].pop('info', None)
-
 
     return analysed_results
 
-def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
+def analysis_dict_to_array(analysis_dict, leads_idxs):
     result = []
     logger.debug(analysis_dict)
     per_lead_parameters = ['bpm', 'missing_qrs', 'missing_p', 'qrs_duration', 's_duration', 'notched', 'r_distances']
@@ -523,38 +581,42 @@ def analysis_dict_to_array(analysis_dict, leads_idxs, peaks_count):
     else:
         cross_lead_parameters = ['rhythm_origin_vertical','rhythm_origin_horizontal']
 
-
-    for peak_idx in range(peaks_count):
-        tmp_result_lead = []
-        for lead_name, idx in leads_idxs.items():
-            tmp_result = []
-            for key in per_lead_parameters:
-                if key in analysis_dict[lead_name]:
-                    try:
-                        if type(analysis_dict[lead_name][key]) == list:
-                            tmp_result.append(analysis_dict[lead_name][key][peak_idx])
-                        else:
-                            tmp_result.append(analysis_dict[lead_name][key])
-                    except Exception as e:
-                        logger.error(f"Key {key}, peak_idx {peak_idx}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
-                        raise e
-                else:
-                    raise Exception(f"No key {key} in results dict")
-            for key in cross_lead_parameters:
-                if key in analysis_dict:
-                    try:
-                        if type(analysis_dict[key]) == list:
-                            tmp_result.append(analysis_dict[key][peak_idx])
-                        else:
-                            tmp_result.append(analysis_dict[key])
-                    except Exception as e:
-                        logger.error(f"Key {key}, peak_idx {peak_idx}, array from result: {analysis_dict[key]}")
-                        raise e
-                else:
-                    logger.warn(f"No key {key} in results dict")
-                    tmp_result.append(0)
-
-            tmp_result_lead.append(tmp_result)
-        result.append(tmp_result_lead)
+    for lead_name, idx in leads_idxs.items():
+        tmp_result = []
+        for key in per_lead_parameters:
+            if key in analysis_dict[lead_name]:
+                try:
+                    if type(analysis_dict[lead_name][key]) == list:
+                        tmp_result.extend(analysis_dict[lead_name][key])
+                    elif isinstance(analysis_dict[lead_name][key], np.ndarray):
+                        tmp_result.extend(analysis_dict[lead_name][key].tolist())
+                    else:
+                        tmp_result.append(analysis_dict[lead_name][key])
+                except Exception as e:
+                    logger.error(f"Key {key}, lead {lead_name}  from result: {analysis_dict[lead_name][key]}")
+                    raise e
+            else:
+                raise Exception(f"No key {key} in results dict")
+        for key in cross_lead_parameters:
+            if key in analysis_dict:
+                try:
+                    if type(analysis_dict[key]) == list:
+                        tmp_result.extend(analysis_dict[key])
+                    elif isinstance(analysis_dict[key], np.ndarray):
+                        tmp_result.extend(analysis_dict[key].tolist())
+                    else:
+                        tmp_result.append(analysis_dict[key])
+                except Exception as e:
+                    logger.error(f"Key {key}, array from result: {analysis_dict[key]}")
+                    raise e
+            else:
+                logger.warn(f"No key {key} in results dict")
+                tmp_result.append(0)
+        result.append(tmp_result)
+    logger.debug(f"Result now: {result}")
+    logger.debug(f"Results length = {len(result)}")
+    for i,x in enumerate(result):
+        logger.debug(f"Results[i] length = {len(x)}")
+ 
     return np.array(result, dtype=np.float64)
 

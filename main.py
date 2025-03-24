@@ -82,7 +82,7 @@ device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cp
 
 def task_prepare_datasets(params):
     leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
-    utilityFunctions = UtilityFunctions(device, datasets_target_dir, rr_features_size=delta_input_size)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
@@ -112,7 +112,7 @@ def main():
     logger.info(f"!!! Experiment: {name} !!!")
 
 
-    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
     
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
@@ -160,7 +160,7 @@ def main():
         logger.info(f"Beginning {fold} fold processing")
         if fold_to_process == "*":
             utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
-        weights = utilityFunctions.load_training_weights_for_fold(fold)
+        weights, neg_weights = utilityFunctions.load_training_weights_for_fold(fold)
         logger.info(f"Training FOLD: {fold}")
         training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads_dict[selected_leads_flag], fold), recursive=False,
                                         load_data=False,
@@ -171,9 +171,8 @@ def main():
                                             data_cache_size=4, transform=None, leads=leads_idx)
         logger.info("Loaded validation dataset")
 
-        #model = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
         model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
-        training_config = TrainingConfig(batch_size=1500,
+        training_config = TrainingConfig(batch_size=500,
                                     n_epochs_stop=early_stop,
                                     num_epochs=epochs,
                                     lr_rate=0.01,
@@ -183,9 +182,9 @@ def main():
                                     regularisation=regularisation
                                     )
 
-        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
-        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
-        networkTrainer=NetworkTrainer(selected_classes=utilityFunctions.all_classes, training_config=training_config, tensorboardWriter=tensorboardWriter)
+        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=500, shuffle=True, num_workers=4)
+        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=500, shuffle=True, num_workers=4)
+        networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv")
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
