@@ -318,12 +318,8 @@ class LSTM_ECG(nn.Module):
             self.linea_multiplier = input_size
             if input_size > 6:
                 self.linea_multiplier = 6
-            # self.hidden_size=1
-            # self.num_layers=1
-            #self.input_size = 1
             self.lstm_alpha1 = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size,
                                        num_layers=self.num_layers, batch_first=True, bidirectional=False)
-            #self.fc = nn.Linear((input_size + input_features_size_b + 1) * self.linea_multiplier * self.hidden_size, num_classes)
             self.fc = nn.Linear( input_features_size_b * self.hidden_size, num_classes)
 
         self.relu = nn.ReLU()
@@ -370,6 +366,57 @@ class LSTM_ECG(nn.Module):
             out = self.fc(out)  # Final Output
             out = self.dropoutFC(out)
         return out
+
+
+class GRU(nn.Module):
+    def __init__(self,
+                 input_size,
+                 num_classes,
+                 hidden_size,
+                 num_layers,
+                 seq_length,
+                 device,
+                 model_type='alpha',
+                 classes=[],
+                 input_features_size_a1=350,
+                 input_features_size_a2=185,
+                 input_features_size_b=360):
+        super(GRU, self).__init__()
+        self.num_classes = num_classes  # number of classes
+        self.num_layers = num_layers  # number of layers
+        self.input_size = input_size  # input size
+        self.hidden_size = hidden_size  # hidden state
+        self.seq_length = seq_length  # sequence length
+        self.model_type = model_type
+        self.classes = classes
+        self.device = device
+        self.sigmoid = nn.Sigmoid()
+        self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
+        self.dropoutGRU = nn.Dropout(0.2)
+        self.dropoutFC = nn.Dropout(0.2)
+
+        print(f'| GRU')
+
+        self.linea_multiplier = input_size
+        if input_size > 6:
+            self.linea_multiplier = 6
+        self.gru_beta = nn.GRU(input_size=self.input_size, hidden_size=self.hidden_size,
+                               num_layers=self.num_layers, batch_first=True, bidirectional=False)
+        self.fc = nn.Linear( input_features_size_b * self.hidden_size, num_classes)
+        self.relu = nn.ReLU()
+
+    def forward(self, beta_input):
+        h_0 = autograd.Variable(
+            torch.zeros(self.num_layers * self.when_bidirectional, beta_input.size(0), self.hidden_size,
+            device=self.device))  # hidden state
+        output_beta, _ = self.gru_beta(beta_input, h_0)
+        output_beta = self.dropoutGRU(output_beta)
+        out = torch.flatten(output_beta, start_dim=1)
+        out = self.relu(out)  # relua
+        out = self.fc(out)  # Final Output
+        out = self.dropoutFC(out)
+        return out
+
 
 
 
@@ -472,6 +519,17 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                             classes=selected_classes,
                             num_layers=layers,
                             input_features_size_b=b_in)
+    if network == "GRU":
+        return GRU(input_size=leads,
+                num_classes=len(selected_classes),
+                hidden_size=hs,
+                num_layers=layers,
+                seq_length=single_peak_length,
+                device=device,
+                model_type=as_branch,
+                classes=selected_classes,
+                input_features_size_b=b_in)
+
 
 
 class BranchConfig:
