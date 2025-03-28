@@ -50,7 +50,6 @@ class NBeatsNet(nn.Module):
             self.linea_multiplier = input_size
             if input_size > 6:
                 self.linea_multiplier = 6
-            linear_input_size = input_size * self.linea_multiplier + input_features_size * self.linea_multiplier + self.linea_multiplier
         self.fc_linear = nn.Linear(input_features_size * len(classes), len(classes))
 
         print(f'| N-Beats, device={self.device}')
@@ -63,21 +62,16 @@ class NBeatsNet(nn.Module):
         print(f'| --  Stack {stack_type.title()} (#{stack_id}) (share_weights_in_stack={self.share_weights_in_stack})')
         blocks = []
         for block_id in range(self.nb_blocks_per_stack):
-            block_init = NBeatsNet.select_block(stack_type)
             if self.share_weights_in_stack and block_id != 0:
                 block = blocks[-1]  # pick up the last one when we share weights.
             else:
-                block = block_init(self.hidden_layer_units, self.thetas_dim[stack_id], self.input_features_size * self.input_size,
-                                   self.target_size, classes=len(self.classes))
+                block = GenericBlock(self.hidden_layer_units, self.thetas_dim[stack_id], self.input_size, self.target_size, classes=len(self.classes))
                 self.parameters.extend(block.parameters())
             print(f'     | -- {block}')
             blocks.append(block)
             blocks = nn.ModuleList(blocks)
         return Stack(blocks[0], blocks[1])
 
-    @staticmethod
-    def select_block(block_type):
-        return GenericBlock
 
     def forward(self, backcast):
         forecast = torch.zeros(size=backcast.shape, device=self.device)
@@ -272,19 +266,15 @@ class Nbeats_beta(nn.Module):
                                      hidden_layer_units=self.hidden_size,
                                      input_features_size=input_features_size_b)
 
-        self.fc = nn.Linear( input_features_size_b * self.input_size,
-                            num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
+        self.fc = nn.Linear( input_features_size_b * self.input_size, num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
         logger.debug(f"{self}")
 
 
     def forward(self, beta_input):
-        #logger.debug(f"NBeats_beta INPUT shape: {beta_input.shape}")
-        beta_flattened = torch.flatten(beta_input, start_dim=1)
-        #logger.debug(f"NBeats_beta INPUT FLATTENED shape: {beta_flattened.shape}")
-        logger.debug(beta_flattened.shape)
-        _, output_beta = self.nbeats_beta(beta_flattened)  # lstm with input, hidden, and internal state
+        logger.debug(f"NBeats_beta INPUT shape: {beta_input.shape}")
+        _, output_beta = self.nbeats_beta(beta_input)  # lstm with input, hidden, and internal state
         logger.debug(f"Nbeats_beta OUTPUT shape: {output_beta.shape}")
-        tmp = torch.squeeze(output_beta)
+        tmp = torch.flatten(output_beta, start_dim=1)
         out = self.relu(tmp)  # relu
         out = self.fc(out)  # Final Output
         return out
