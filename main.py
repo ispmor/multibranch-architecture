@@ -172,7 +172,7 @@ def main():
 
         #model = get_BlendMLP(alpha_config, beta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
         model = get_MultibranchBeats(alpha_config, beta_config, gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes,device, leads=leads_dict[selected_leads_flag])
-        training_config = TrainingConfig(batch_size=1500,
+        training_config = TrainingConfig(batch_size=500,
                                     n_epochs_stop=early_stop,
                                     num_epochs=epochs,
                                     lr_rate=0.01,
@@ -181,13 +181,13 @@ def main():
                                     device=device
                                     )
 
-        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=1500, shuffle=True, num_workers=6)
-        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=1500, shuffle=True, num_workers=6)
+        training_data_loader = torch_data.DataLoader(training_dataset, batch_size=500, shuffle=True, num_workers=4)
+        validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=500, shuffle=True, num_workers=4)
         networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv")
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
-        del model, training_data_loader, validation_data_loader
+        del model, training_data_loader, validation_data_loader, training_dataset, validation_dataset
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
