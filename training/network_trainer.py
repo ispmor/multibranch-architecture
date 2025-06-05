@@ -53,7 +53,7 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         logger.info(f"Regularisation selected: {self.training_config.regularisation}")
         local_step = 0
@@ -66,15 +66,6 @@ class NetworkTrainer:
             forecast = model(alpha_input.to(self.training_config.device), beta_input.to(self.training_config.device), gamma_input.to(self.training_config.device), delta_input.to(self.training_config.device), epsilon_input.to(self.training_config.device), zeta_input.to(self.training_config.device))
 
             loss = self.training_config.criterion(forecast, y.to(self.training_config.device))  # torch.zeros(size=(16,)))
-            # Apply L1 regularisation
-            if self.training_config.regularisation == 'L1':
-                l1_norm = sum(p.abs().sum() for p in model.parameters())
-                loss += lambda_reg * l1_norm
-
-            # Apply L2 regularisation
-            elif self.training_config.regularisation == 'L2':
-                l2_norm = sum(p.pow(2).sum() for p in model.parameters())
-                loss += lambda_reg * l2_norm
 
             epoch_loss.append(loss)
             self.training_config.optimizer.zero_grad()
@@ -83,7 +74,6 @@ class NetworkTrainer:
             if local_step % 50 == 0:
                 logger.info(f"Training loss at step {local_step} = {loss}")
 
-        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.05)
         logger.debug("Finished epoch training")
         result = torch.mean(torch.stack(epoch_loss))
         return result
@@ -133,44 +123,9 @@ class NetworkTrainer:
         best_model_name="default_model"
         epochs_no_improve=0
         min_val_loss=999999
-        #for name, param in blendModel.named_parameters():
-        #    print(name, param.data)
-        parameters_to_prune=(
-                (blendModel.modelA.gru_beta, 'weight_ih_l0'),
-                (blendModel.modelA.gru_beta, 'weight_ih_l1'),
-                (blendModel.modelA.gru_beta, 'weight_hh_l0'),
-                (blendModel.modelA.gru_beta, 'weight_hh_l1'),
-                (blendModel.modelA.fc, 'weight'),
-                (blendModel.modelB.gru_beta, 'weight_ih_l0'),
-                (blendModel.modelB.gru_beta, 'weight_ih_l1'),
-                (blendModel.modelB.gru_beta, 'weight_hh_l0'),
-                (blendModel.modelB.gru_beta, 'weight_hh_l1'),
-                (blendModel.modelB.fc, 'weight'),
-                (blendModel.modelC.gru_beta, 'weight_ih_l0'),
-                (blendModel.modelC.gru_beta, 'weight_ih_l1'),
-                (blendModel.modelC.gru_beta, 'weight_hh_l0'),
-                (blendModel.modelC.gru_beta, 'weight_hh_l1'),
-                (blendModel.modelC.fc, 'weight'),
-                (blendModel.modelD.gru_beta, 'weight_ih_l0'),
-                (blendModel.modelD.gru_beta, 'weight_ih_l1'),
-                (blendModel.modelD.gru_beta, 'weight_hh_l0'),
-                (blendModel.modelD.gru_beta, 'weight_hh_l1'),
-                (blendModel.modelD.fc, 'weight'),
-                (blendModel.modelE.gru_beta, 'weight_ih_l0'),
-                (blendModel.modelE.gru_beta, 'weight_ih_l1'),
-                (blendModel.modelE.gru_beta, 'weight_hh_l0'),
-                (blendModel.modelE.gru_beta, 'weight_hh_l1'),
-                (blendModel.modelE.fc, 'weight'),
-                (blendModel.modelF.gru_beta, 'weight_ih_l0'),
-                (blendModel.modelF.gru_beta, 'weight_ih_l1'),
-                (blendModel.modelF.gru_beta, 'weight_hh_l0'),
-                (blendModel.modelF.gru_beta, 'weight_hh_l1'),
-                (blendModel.modelF.fc, 'weight'),
-                (blendModel.linear, 'weight')
-                )
 
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=parameters_to_prune)
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
@@ -186,7 +141,6 @@ class NetworkTrainer:
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
                 model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
                 logger.debug(f"saving model: {model_name}")
-                self.remove_pruning_layers(parameters_to_prune)
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
             else:
