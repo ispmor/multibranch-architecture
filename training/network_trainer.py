@@ -6,8 +6,6 @@ from networks.model import BlendMLP
 from utilities import batch_preprocessing, challenge_metric_loss, sparsity_loss
 import numpy as np
 import torch
-import torch.nn.utils.prune as prune
-
 import logging
 import time
 from torch.utils.tensorboard import SummaryWriter
@@ -53,7 +51,7 @@ class NetworkTrainer:
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
-    def train_network(self, model, training_data_loader, epoch, include_domain=True, parameters_to_prune=()):
+    def train_network(self, model, training_data_loader, epoch, include_domain=True):
         logger.info(f"...{epoch}/{self.training_config.num_epochs}")
         logger.info(f"Regularisation selected: {self.training_config.regularisation}")
         local_step = 0
@@ -134,7 +132,7 @@ class NetworkTrainer:
         min_val_loss=999999
 
         for epoch in range(self.training_config.num_epochs):
-            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain, parameters_to_prune=())
+            epoch_loss = self.train_network(blendModel, training_data_loader, epoch, include_domain=include_domain)
             epoch_validation_loss = self.validate_network(blendModel, validation_data_loader, epoch, include_domain=include_domain)
             self.tensorboardWriter.add_scalar("Loss/training", epoch_loss, epoch)
             self.tensorboardWriter.add_scalar("Loss/validation", epoch_validation_loss, epoch)
@@ -159,12 +157,6 @@ class NetworkTrainer:
                 break
             logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
-
-
-    def remove_pruning_layers(self, parameters_to_prune):
-        for m, weight_name in parameters_to_prune:
-            if prune.is_pruned(m):
-                prune.remove(m, weight_name)
 
 
 
