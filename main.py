@@ -161,11 +161,11 @@ def main():
             utilityFunctions.prepare_h5_dataset(leads_dict[selected_leads_flag], fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
         weights, neg_weights = utilityFunctions.load_training_weights_for_fold(fold)
         logger.info(f"Training FOLD: {fold}")
-        training_dataset = HDF5Dataset('./' + utilityFunctions.training_filename.format(leads_dict[selected_leads_flag], fold), recursive=False,
+        training_dataset = HDF5Dataset(utilityFunctions.training_filename.format(leads_dict[selected_leads_flag], fold), recursive=False,
                                         load_data=False,
                                         data_cache_size=4, transform=None, leads=leads_idx)
         logger.info("Loaded training dataset")
-        validation_dataset = HDF5Dataset('./' + utilityFunctions.validation_filename.format(leads_dict[selected_leads_flag],fold), recursive=False,
+        validation_dataset = HDF5Dataset(utilityFunctions.validation_filename.format(leads_dict[selected_leads_flag],fold), recursive=False,
                                             load_data=False,
                                             data_cache_size=4, transform=None, leads=leads_idx)
         logger.info("Loaded validation dataset")
