@@ -6,6 +6,7 @@ from networks.model import BlendMLP
 from utilities import batch_preprocessing, challenge_metric_loss, sparsity_loss
 import numpy as np
 import torch
+import torch.nn.utils.prune as prune
 import logging
 import time
 from torch.utils.tensorboard import SummaryWriter
@@ -39,13 +40,14 @@ class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
     training_config: TrainingConfig = None
-    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter, domain_weights_file) -> None:
+    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter, domain_weights_file, experiment_name: str) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
         self.tensorboardWriter = tensorboardWriter
         self.domain_weights_file = domain_weights_file
         _, self.domain_weights = load_weights(domain_weights_file)
         self.domain_weights = torch.from_numpy(self.domain_weights)
+        self.experiment_name = experiment_name
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
@@ -133,7 +135,7 @@ class NetworkTrainer:
                 epochs_no_improve = 0
                 min_val_loss = epoch_validation_loss
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
-                model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
+                model_name = f"models_repository/{self.experiment_name}.th"
                 logger.debug(f"saving model: {model_name}")
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
@@ -145,6 +147,51 @@ class NetworkTrainer:
             logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
 
+    
+    def remove_pruning_layers(self, parameters_to_prune):
+        for m, weight_name in parameters_to_prune:
+            if prune.is_pruned(m):
+                prune.remove(m, weight_name)
+
+    def prune_model(self, blendModel):
+        parameters_to_prune=(
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelA.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelA.fc, 'weight'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelB.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelB.fc, 'weight'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelC.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelC.fc, 'weight'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelD.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelD.fc, 'weight'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelE.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelE.fc, 'weight'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_ih_l1'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l0'),
+                (blendModel.modelF.lstm_alpha1, 'weight_hh_l1'),
+                (blendModel.modelF.fc, 'weight'),
+                (blendModel.linear, 'weight')
+                )
+
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.20)
+
+        self.remove_pruning_layers(parameters_to_prune)
+        return blendModel
 
 
     def test_network():

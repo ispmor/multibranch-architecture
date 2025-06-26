@@ -182,7 +182,7 @@ def main():
 
         training_data_loader = torch_data.DataLoader(training_dataset, batch_size=500, shuffle=True, num_workers=4)
         validation_data_loader = torch_data.DataLoader(validation_dataset, batch_size=500, shuffle=True, num_workers=4)
-        networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv")
+        networkTrainer=NetworkTrainer(utilityFunctions.all_classes, training_config, tensorboardWriter, "weights_eval.csv", name)
         trained_model_name= networkTrainer.train(model, alpha_config, beta_config, training_data_loader,  validation_data_loader, fold, leads_dict[selected_leads_flag], include_domain)
         logger.info(f"Best trained model filename: {trained_model_name}")
 
@@ -191,9 +191,11 @@ def main():
             torch.cuda.empty_cache()
 
         trained_model = utilityFunctions.load_model(trained_model_name, alpha_config, beta_config,  gamma_config, delta_config, epsilon_config, zeta_config, utilityFunctions.all_classes, leads_dict[selected_leads_flag], device)
+        pruned_model = networkTrainer.prune_model(trained_model)
+
         logger.info(f"Loaded model: {trained_model}")
         test_header_files, test_recording_files = utilityFunctions.load_test_headers_and_recordings(fold, leads_dict[selected_leads_flag])
-        results = utilityFunctions.test_network(trained_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], include_domain, experiment_name=name)
+        results = utilityFunctions.test_network(pruned_model,"weights_eval.csv", test_header_files, test_recording_files, fold, leads_dict[selected_leads_flag], include_domain, experiment_name=name)
         logger.info("Saving results to json file")
         results.save_json(f"results/{name}/{date}/fold_{fold}.json")
 
