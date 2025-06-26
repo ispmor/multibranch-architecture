@@ -50,13 +50,11 @@ class NBeatsNet(nn.Module):
             self.linea_multiplier = input_size
             if input_size > 6:
                 self.linea_multiplier = 6
-            linear_input_size = input_size * self.linea_multiplier + input_features_size * self.linea_multiplier + self.linea_multiplier
         self.fc_linear = nn.Linear(input_features_size * len(classes), len(classes))
 
         print(f'| N-Beats, device={self.device}')
 
-        for stack_id in range(len(self.stack_types)):
-            self.stacks.append(self.create_stack(stack_id))
+        self.stack = self.create_stack(0)
         self.parameters = nn.ParameterList(self.parameters)
 
     def create_stack(self, stack_id):
@@ -64,31 +62,40 @@ class NBeatsNet(nn.Module):
         print(f'| --  Stack {stack_type.title()} (#{stack_id}) (share_weights_in_stack={self.share_weights_in_stack})')
         blocks = []
         for block_id in range(self.nb_blocks_per_stack):
-            block_init = NBeatsNet.select_block(stack_type)
             if self.share_weights_in_stack and block_id != 0:
                 block = blocks[-1]  # pick up the last one when we share weights.
             else:
-                block = block_init(self.hidden_layer_units, self.thetas_dim[stack_id], self.input_features_size * self.input_size,
-                                   self.target_size, classes=len(self.classes))
+                block = GenericBlock(self.hidden_layer_units, self.thetas_dim[stack_id], self.input_size, self.target_size, classes=len(self.classes))
                 self.parameters.extend(block.parameters())
             print(f'     | -- {block}')
             blocks.append(block)
-        return blocks
+            blocks = nn.ModuleList(blocks)
+        return Stack(blocks[0], blocks[1])
 
-    @staticmethod
-    def select_block(block_type):
-        return GenericBlock
 
     def forward(self, backcast):
         forecast = torch.zeros(size=backcast.shape, device=self.device)
-        for stack_id in range(len(self.stacks)):
-            for block_id in range(len(self.stacks[stack_id])):
-                b, f = self.stacks[stack_id][block_id](backcast)
-                backcast = backcast - b
-                forecast = forecast + f
+
+        b, f = self.stack.block0(backcast)
+        backcast = backcast - b
+        forecast = forecast + f
+
+        b, f = self.stack.block1(backcast)
+        backcast = backcast - b
+        forecast = forecast + f
+
+        #for block_id in range(len(self.stack)):
+        #    b, f = self.stack[block_id](backcast)
+        #    backcast = backcast - b
+        #    forecast = forecast + f
 
         return backcast, forecast
 
+class Stack(nn.Module):
+    def __init__(self, block0, block1):
+        super(Stack, self).__init__()
+        self.block0=block0
+        self.block1=block1
 
 def linspace(backcast_length, forecast_length):
     lin_space = np.linspace(-backcast_length, forecast_length, backcast_length + forecast_length)
@@ -259,20 +266,22 @@ class Nbeats_beta(nn.Module):
                                      hidden_layer_units=self.hidden_size,
                                      input_features_size=input_features_size_b)
 
-        self.fc = nn.Linear( input_features_size_b * self.input_size,
-                            num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
+        self.fc = nn.Linear( input_features_size_b * self.input_size, num_classes)  # hidden_size, 128)  # fully connected 1# fully connected last layer
         logger.debug(f"{self}")
+        self.dropoutNBEATS = nn.Dropout(0.2)
+        self.dropoutFC = nn.Dropout(0.2)
 
 
     def forward(self, beta_input):
         logger.debug(f"NBeats_beta INPUT shape: {beta_input.shape}")
-        beta_flattened = torch.flatten(beta_input, start_dim=1)
-        logger.debug(f"NBeats_beta INPUT FLATTENED shape: {beta_flattened.shape}")
-        _, output_beta = self.nbeats_beta(beta_flattened)  # lstm with input, hidden, and internal state
+        _, output_beta = self.nbeats_beta(beta_input)  # lstm with input, hidden, and internal state
         logger.debug(f"Nbeats_beta OUTPUT shape: {output_beta.shape}")
-        tmp = torch.squeeze(output_beta)
+        nbeats_dropout = self.dropoutNBEATS(output_beta)
+        logger.debug(f"Nbeats_dropout  OUTPUT shape: {nbeats_dropout.shape}")
+        tmp = torch.flatten(output_beta, start_dim=1)
         out = self.relu(tmp)  # relu
         out = self.fc(out)  # Final Output
+        out = self.dropoutFC(out)
         return out
 
 
@@ -318,12 +327,8 @@ class LSTM_ECG(nn.Module):
             self.linea_multiplier = input_size
             if input_size > 6:
                 self.linea_multiplier = 6
-            # self.hidden_size=1
-            # self.num_layers=1
-            #self.input_size = 1
             self.lstm_alpha1 = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size,
                                        num_layers=self.num_layers, batch_first=True, bidirectional=False)
-            #self.fc = nn.Linear((input_size + input_features_size_b + 1) * self.linea_multiplier * self.hidden_size, num_classes)
             self.fc = nn.Linear( input_features_size_b * self.hidden_size, num_classes)
 
         self.relu = nn.ReLU()
@@ -370,6 +375,57 @@ class LSTM_ECG(nn.Module):
             out = self.fc(out)  # Final Output
             out = self.dropoutFC(out)
         return out
+
+
+class GRU(nn.Module):
+    def __init__(self,
+                 input_size,
+                 num_classes,
+                 hidden_size,
+                 num_layers,
+                 seq_length,
+                 device,
+                 model_type='alpha',
+                 classes=[],
+                 input_features_size_a1=350,
+                 input_features_size_a2=185,
+                 input_features_size_b=360):
+        super(GRU, self).__init__()
+        self.num_classes = num_classes  # number of classes
+        self.num_layers = num_layers  # number of layers
+        self.input_size = input_size  # input size
+        self.hidden_size = hidden_size  # hidden state
+        self.seq_length = seq_length  # sequence length
+        self.model_type = model_type
+        self.classes = classes
+        self.device = device
+        self.sigmoid = nn.Sigmoid()
+        self.when_bidirectional = 1  # if bidirectional = True, then it has to be equal to 2
+        self.dropoutGRU = nn.Dropout(0.2)
+        self.dropoutFC = nn.Dropout(0.2)
+
+        print(f'| GRU')
+
+        self.linea_multiplier = input_size
+        if input_size > 6:
+            self.linea_multiplier = 6
+        self.gru_beta = nn.GRU(input_size=self.input_size, hidden_size=self.hidden_size,
+                               num_layers=self.num_layers, batch_first=True, bidirectional=False)
+        self.fc = nn.Linear( input_features_size_b * self.hidden_size, num_classes)
+        self.relu = nn.ReLU()
+
+    def forward(self, beta_input):
+        h_0 = autograd.Variable(
+            torch.zeros(self.num_layers * self.when_bidirectional, beta_input.size(0), self.hidden_size,
+            device=self.device))  # hidden state
+        output_beta, _ = self.gru_beta(beta_input, h_0)
+        output_beta = self.dropoutGRU(output_beta)
+        out = torch.flatten(output_beta, start_dim=1)
+        out = self.relu(out)  # relua
+        out = self.fc(out)  # Final Output
+        out = self.dropoutFC(out)
+        return out
+
 
 
 
@@ -472,6 +528,17 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
                             classes=selected_classes,
                             num_layers=layers,
                             input_features_size_b=b_in)
+    if network == "GRU":
+        return GRU(input_size=leads,
+                num_classes=len(selected_classes),
+                hidden_size=hs,
+                num_layers=layers,
+                seq_length=single_peak_length,
+                device=device,
+                model_type=as_branch,
+                classes=selected_classes,
+                input_features_size_b=b_in)
+
 
 
 class BranchConfig:
