@@ -6,6 +6,7 @@ from networks.model import BlendMLP
 from utilities import batch_preprocessing, challenge_metric_loss, sparsity_loss
 import numpy as np
 import torch
+import torch.nn.utils.prune as prune
 import logging
 import time
 from torch.utils.tensorboard import SummaryWriter
@@ -41,13 +42,14 @@ class NetworkTrainer:
     min_val_loss = 999
     selected_classe = []
     training_config: TrainingConfig = None
-    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter, domain_weights_file) -> None:
+    def __init__(self, selected_classes: list, training_config: TrainingConfig, tensorboardWriter: SummaryWriter, domain_weights_file, experiment_name: str) -> None:
         self.selected_classe=selected_classes
         self.training_config = training_config
         self.tensorboardWriter = tensorboardWriter
         self.domain_weights_file = domain_weights_file
         _, self.domain_weights = load_weights(domain_weights_file)
         self.domain_weights = torch.from_numpy(self.domain_weights)
+        self.experiment_name = experiment_name
         logger.debug(f"Initiated NetworkTrainer object\n {self}")
 
 
@@ -146,7 +148,7 @@ class NetworkTrainer:
                 epochs_no_improve = 0
                 min_val_loss = epoch_validation_loss
                 logger.info(f'Savining {len(leads)}-lead ECG model, epoch: {epoch}...')
-                model_name = f"models_repository/{alpha_config.network_name}_{beta_config.network_name}_{leads}_{time.time()}.th"
+                model_name = f"models_repository/{self.experiment_name}.th"
                 logger.debug(f"saving model: {model_name}")
                 self.save(model_name,blendModel, self.training_config.optimizer, list(sorted(blendModel.classes)), leads)
                 best_model_name=model_name
@@ -158,6 +160,128 @@ class NetworkTrainer:
             logger.info(f"not improving since: {epochs_no_improve}")
         return best_model_name
 
+    
+    def remove_pruning_layers(self, parameters_to_prune):
+        for m, weight_name in parameters_to_prune:
+            if prune.is_pruned(m):
+                prune.remove(m, weight_name)
+
+    def prune_model(self, blendModel):
+        parameters_to_prune=(
+                (blendModel.modelA.nbeats_beta.fc_linear, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.fc1, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.fc2, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.fc3, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.fc4, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.backcast_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block0.forecast_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.fc1, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.fc2, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.fc3, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.fc4, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.backcast_fc, 'weight'),
+                (blendModel.modelA.nbeats_beta.stack.block1.forecast_fc, 'weight'),
+                (blendModel.modelA.fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.fc_linear, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.fc1, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.fc2, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.fc3, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.fc4, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.backcast_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block0.forecast_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.fc1, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.fc2, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.fc3, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.fc4, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.backcast_fc, 'weight'),
+                (blendModel.modelB.nbeats_beta.stack.block1.forecast_fc, 'weight'),
+                (blendModel.modelB.fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.fc_linear, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.fc1, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.fc2, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.fc3, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.fc4, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.backcast_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block0.forecast_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.fc1, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.fc2, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.fc3, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.fc4, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.backcast_fc, 'weight'),
+                (blendModel.modelC.nbeats_beta.stack.block1.forecast_fc, 'weight'),
+                (blendModel.modelC.fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.fc_linear, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.fc1, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.fc2, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.fc3, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.fc4, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.backcast_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block0.forecast_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.fc1, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.fc2, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.fc3, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.fc4, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.backcast_fc, 'weight'),
+                (blendModel.modelD.nbeats_beta.stack.block1.forecast_fc, 'weight'),
+                (blendModel.modelD.fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.fc_linear, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.fc1, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.fc2, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.fc3, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.fc4, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.backcast_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block0.forecast_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.fc1, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.fc2, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.fc3, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.fc4, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.backcast_fc, 'weight'),
+                (blendModel.modelE.nbeats_beta.stack.block1.forecast_fc, 'weight'),
+                (blendModel.modelE.fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.fc_linear, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.fc1, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.fc2, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.fc3, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.fc4, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.theta_f_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.theta_b_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.backcast_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block0.forecast_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.fc1, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.fc2, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.fc3, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.fc4, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.theta_f_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.theta_b_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.backcast_fc, 'weight'),
+                (blendModel.modelF.nbeats_beta.stack.block1.forecast_fc, 'weight'),
+                (blendModel.modelF.fc, 'weight'),
+                )
+
+        prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=0.20)
+
+        self.remove_pruning_layers(parameters_to_prune)
+        return blendModel
 
 
     def test_network():
