@@ -1,6 +1,6 @@
 DATA_DIR="/home/bartek/data/full_data_flat"
 LEADS=12
-NETWORK="LSTM"
+NETWORK="NBEATS"
 ALPHA_HIDDEN="11"
 ALPHA_LAYERS="2"
 COMMON="3s_full"
