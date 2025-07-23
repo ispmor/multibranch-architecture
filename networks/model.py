@@ -425,9 +425,9 @@ class Conv1dECG(nn.Module):
             
         self.fc = nn.Linear(math.ceil(input_size/16.0), num_classes)
         self.swish5 = nn.SiLU()
-        self.adaptive_avg_pool = nn.AdaptiveAvgPool1d(1)
+        self.pool = nn.AvgPool1d(math.ceil(input_size/16.0))
 
-        self.fc2 = nn.Linear(num_filters * 8, num_classes)
+        self.fc2 = nn.Linear(num_filters * 8 * num_classes, num_classes)
         self.swish6 = nn.SiLU()
 
     def forward(self, x):
@@ -470,6 +470,8 @@ class Conv1dECG(nn.Module):
         x = self.fc(x)
         logger.debug(f"shape after FC: {x.shape}")
         x = self.swish5(x)
+        x = x.view(x.size(0), -1)
+        logger.debug(f"shape after view: {x.shape}")
 
         x = self.fc2(x)
         logger.debug(f"shape after FC2: {x.shape}")
