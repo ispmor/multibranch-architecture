@@ -470,8 +470,6 @@ class Conv1dECG(nn.Module):
         x = self.fc(x)
         logger.debug(f"shape after FC: {x.shape}")
         x = self.swish5(x)
-        x = self.adaptive_avg_pool(x)
-        logger.debug(f"shape after addaptive pool: {x.shape}")
 
         x = self.fc2(x)
         logger.debug(f"shape after FC2: {x.shape}")
