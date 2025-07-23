@@ -1,4 +1,4 @@
-DATA_DIR="/home/data/"
+DATA_DIR="/home/bartek/data/full_data_flat/"
 LEADS=12
 NETWORK="CNN"
 ALPHA_HIDDEN="72"
