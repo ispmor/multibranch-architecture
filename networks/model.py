@@ -513,7 +513,7 @@ def get_single_network(network, hs, layers, leads, selected_classes, single_peak
 
     if network == "CNN":
         return Conv1dECG(
-                in_channels=leads,
+                in_channels=len(leads),
                 num_filters=hs,
                 num_classes=len(selected_classes),
                 input_size=b_in
