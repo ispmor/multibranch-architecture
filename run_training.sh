@@ -1,7 +1,7 @@
-DATA_DIR="/home/bartek/data/full_data_flat"
+DATA_DIR="/home/data/"
 LEADS=12
-NETWORK="LSTM"
-ALPHA_HIDDEN="11"
+NETWORK="CNN"
+ALPHA_HIDDEN="72"
 ALPHA_LAYERS="2"
 COMMON="3s_full"
 BRANCH_NAME=$(git symbolic-ref --short HEAD | sed -r 's/\//_/g') 
