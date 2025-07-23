@@ -37,7 +37,7 @@ parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=a
 parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
 parser.add_argument("--include-domain", help = "Include domain knowledge", action=argparse.BooleanOptionalAction, default=False)
 parser.add_argument("-l", "--leads", choices={"2","3", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
-parser.add_argument('--network', choices={"LSTM", "NBEATS", "GRU"}, help="Select network to train", default="NBEATS")
+parser.add_argument('--network', choices={"LSTM", "NBEATS", "GRU", "CNN"}, help="Select network to train", default="NBEATS")
 parser.add_argument( "--alpha-hidden", help = "Hidden size of alpha branch", default=7, type=int)
 parser.add_argument( "--alpha-layers", help = "Number of layers of alpha branch", default=2, type=int)
 parser.add_argument( "--beta-hidden", help = "Hidden size of beta branch", default=7, type=int)
