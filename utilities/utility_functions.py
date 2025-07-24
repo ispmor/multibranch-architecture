@@ -269,6 +269,7 @@ class UtilityFunctions:
         coeffs = np.nan_to_num(np.asarray(coeffs,  dtype=np.float64))
 
         rr_features = np.zeros((x_drift_removed.shape[0], drift_removed_recording.shape[0], self.domain_knowledge_size), dtype=np.float64)
+        logger.debug(f"rr_features shape as base: {rr_features.shape}")
         counter = 0 
         for peak in range(0, recording_length-self.window_size, 500):
 
