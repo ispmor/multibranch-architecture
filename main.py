@@ -81,7 +81,7 @@ device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cp
 
 def task_prepare_datasets(params):
     leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
-    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=gamma_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, domain_knowledge_size=gamma_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
@@ -111,7 +111,7 @@ def main():
     logger.info(f"!!! Experiment: {name} !!!")
 
 
-    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, domain_knowledge_size=delta_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
     
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
