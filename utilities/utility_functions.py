@@ -72,10 +72,10 @@ class UtilityFunctions:
 
 
 
-    def __init__(self, device, datasets_dir="h5_datasets/", window_size=350, rr_features_size=16, wavelet_features_size=185) -> None:
+    def __init__(self, device, datasets_dir="h5_datasets/", window_size=350, domain_knowledge_size=16, wavelet_features_size=185) -> None:
         self.device = device
         self.window_size = window_size
-        self.rr_features_size = rr_features_size
+        self.domain_knowledge_size = domain_knowledge_size
         self.wavelet_features_size = wavelet_features_size
 
         self.training_filename = datasets_dir + 'cinc_database_training_{0}_{1}.h5'
@@ -268,7 +268,8 @@ class UtilityFunctions:
         x_baseline_removed = np.array(x_baseline_removed, dtype=np.float64)
         coeffs = np.nan_to_num(np.asarray(coeffs,  dtype=np.float64))
 
-        rr_features = np.zeros((x_drift_removed.shape[0], drift_removed_recording.shape[0], self.rr_features_size), dtype=np.float64)
+        rr_features = np.zeros((x_drift_removed.shape[0], drift_removed_recording.shape[0], self.domain_knowledge_size), dtype=np.float64)
+        logger.debug(f"rr_features shape as base: {rr_features.shape}")
         counter = 0 
         for peak in range(0, recording_length-self.window_size, 500):
 
@@ -407,8 +408,8 @@ class UtilityFunctions:
                                       chunks=(1, len(leads), self.window_size))
             lset = grp.create_dataset("label", (1, num_classes), maxshape=(None, num_classes), dtype='f',
                                       chunks=(1, num_classes))
-            rrset = grp.create_dataset("rr_features", (1, len(leads), self.rr_features_size), maxshape=(None, len(leads), self.rr_features_size), dtype='f',
-                                       chunks=(1, len(leads), self.rr_features_size))
+            rrset = grp.create_dataset("rr_features", (1, len(leads), self.domain_knowledge_size), maxshape=(None, len(leads), self.domain_knowledge_size), dtype='f',
+                                       chunks=(1, len(leads), self.domain_knowledge_size))
             waveset = grp.create_dataset("wavelet_features", (1, len(leads), self.wavelet_features_size), maxshape=(None, len(leads), self.wavelet_features_size),
                                          dtype='f',
                                          chunks=(1, len(leads), self.wavelet_features_size))

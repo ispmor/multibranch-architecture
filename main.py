@@ -37,7 +37,7 @@ parser.add_argument("-d", "--debug", help="Set logging level to DEBUG", action=a
 parser.add_argument("-r", "--remove-baseline", help="Set should remove baseline", action=argparse.BooleanOptionalAction)
 parser.add_argument("--include-domain", help = "Include domain knowledge", action=argparse.BooleanOptionalAction, default=False)
 parser.add_argument("-l", "--leads", choices={"2","3", "4", "6", "12"}, help="Select which set of leads should be used", default="12")
-parser.add_argument('--network', choices={"LSTM", "NBEATS", "GRU"}, help="Select network to train", default="NBEATS")
+parser.add_argument('--network', choices={"LSTM", "NBEATS", "GRU", "CNN"}, help="Select network to train", default="NBEATS")
 parser.add_argument( "--alpha-hidden", help = "Hidden size of alpha branch", default=7, type=int)
 parser.add_argument( "--alpha-layers", help = "Number of layers of alpha branch", default=2, type=int)
 parser.add_argument( "--beta-hidden", help = "Hidden size of beta branch", default=7, type=int)
@@ -82,14 +82,14 @@ device = torch.device(f"cuda:{gpu_number}" if torch.cuda.is_available() else "cp
 
 def task_prepare_datasets(params):
     leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline, datasets_target_dir, device = params
-    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, domain_knowledge_size=gamma_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
     utilityFunctions.prepare_h5_dataset(leads, fold, data_training_full, data_test, header_files, recording_files, class_index, remove_baseline)
 
 def main():
     alpha_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, window_size, wavelet_features_size, beta_input_size=alpha_input_size)
     beta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=beta_input_size)
-    gamma_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=gamma_input_size, channels=1)
-    delta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=delta_input_size)
+    gamma_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=gamma_input_size)
+    delta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, beta_input_size=delta_input_size, channels=1)
     epsilon_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, window_size, wavelet_features_size, beta_input_size=epsilon_input_size)
     zeta_config = BranchConfig(network_name, alpha_hidden, alpha_layers, window_size, window_size, wavelet_features_size, beta_input_size=zeta_input_size)
 
@@ -112,7 +112,7 @@ def main():
     logger.info(f"!!! Experiment: {name} !!!")
 
 
-    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, rr_features_size=delta_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
+    utilityFunctions = UtilityFunctions(device, datasets_dir=datasets_target_dir, domain_knowledge_size=gamma_input_size, window_size=window_size, wavelet_features_size=wavelet_features_size)
     
     header_files, recording_files = find_challenge_files(data_directory)
     num_recordings = len(header_files)
@@ -175,11 +175,10 @@ def main():
         training_config = TrainingConfig(batch_size=500,
                                     n_epochs_stop=early_stop,
                                     num_epochs=epochs,
-                                    lr_rate=0.01,
+                                    lr_rate=0.001,
                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
-                                    optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
-                                    device=device,
-                                    regularisation=regularisation
+                                    optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
+                                    device=device
                                     )
 
         training_data_loader = torch_data.DataLoader(training_dataset, batch_size=500, shuffle=True, num_workers=4)
