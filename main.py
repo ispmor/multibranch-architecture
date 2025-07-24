@@ -176,7 +176,7 @@ def main():
                                     num_epochs=epochs,
                                     lr_rate=0.001,
                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
-                                    optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
+                                    optimizer=torch.optim.AdamW(model.parameters(), lr=0.001),
                                     device=device
                                     )
 

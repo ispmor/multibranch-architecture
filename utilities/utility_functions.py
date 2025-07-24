@@ -169,47 +169,6 @@ class UtilityFunctions:
             self.add_classes_counts(local_test_counts)
             save_headers_recordings_to_json(f"{test_filename}_header_recording_files.json", header_files, recording_files, single_fold_data_test) 
 
-        #if weights is None and os.path.isfile(training_filename):
-        #    logger.info(f"Weights vector is not defined and training dataset ({training_filename}) exists, loading weights")
-        #    weights_total = torch.tensor(np.loadtxt(training_weights_filename, delimiter=','), device=self.device)
-        #    weights = weights_total[0]
-        #    neg_weights = weights_total[1]
-        #    self.weights = weights
-        #    self.neg_weights = neg_weights
-        #    logger.info(f"Loaded positive weights: {weights}")
-        #    logger.info(f"Loaded negative weights: {neg_weights}")
-
-        #classes_occurences_filename = f"classes_in_h5_occurrences_new_{leads}_{fold}.json"
-        #if (sum(self.classes_counts.values()) == 0 or None in self.classes_counts.values()) and os.path.isfile(classes_occurences_filename):
-        #    logger.info(f"Classes counts = 0, loading counts from {classes_occurences_filename} file")
-        #    with open(classes_occurences_filename, 'r') as f:
-        #        self.classes_counts = json.load(f)
-        #elif (len(self.classes_counts.values()) != 0 and all(self.classes_counts.values())) and not os.path.isfile(classes_occurences_filename):
-        #    logger.info(f"Classes counts > 0, saving counts to {classes_occurences_filename} file")
-        #    with open(classes_occurences_filename, 'w') as f:
-        #        json.dump(self.classes_counts, f)
-
-        #logger.info(f"Classes counts: {self.classes_counts}")
-
-        #classes_to_classify = dict().fromkeys(self.all_classes)
-        #index_mapping_from_normal_to_selected = dict()
-        #tmp_iterator = 0
-        #for c in self.classes:
-        #    if c in self.all_classes:
-        #        classes_to_classify[c] = tmp_iterator
-        #        index_mapping_from_normal_to_selected[classes_index[c]] = tmp_iterator
-        #        tmp_iterator += 1
-
-        #sorted_classes_counts = dict(
-        #    sorted([(k, self.classes_counts[k]) for k in classes_to_classify.keys()], key=lambda x: int(x[0])))
-
-        #logger.info(f"Sorted classes counts: {sorted_classes_counts}")
-
-        #weights = self.calculate_pos_weights(sorted_classes_counts.values())
-        #pos_weights = [all_signals_counts / pos_count for pos_count in  class_counts]
-        #logger.info(f"Weights vecotr={weights}")
-
-
 
 
 
