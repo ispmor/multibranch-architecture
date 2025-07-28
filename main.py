@@ -175,9 +175,9 @@ def main():
         training_config = TrainingConfig(batch_size=500,
                                     n_epochs_stop=early_stop,
                                     num_epochs=epochs,
-                                    lr_rate=0.001,
+                                    lr_rate=0.01,
                                     criterion=nn.BCEWithLogitsLoss(pos_weight=weights),
-                                    optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
+                                    optimizer=torch.optim.Adam(model.parameters(), lr=0.01),
                                     device=device
                                     )
 
